@@ -1,0 +1,1145 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Battlefield Config Builder</title>
+<meta name="description" content="Pick your CPU, GPU, RAM and display and get a tuned user.cfg and PROFSAVE_profile for Battlefield 4 and Battlefield 1.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  /* ------------------------------------------------------------------
+     Design tokens
+     ------------------------------------------------------------------ */
+  :root {
+    --field:   #E3E6DF;   /* page background: field gray */
+    --paper:   #F4F5F0;   /* raised surfaces */
+    --ink:     #26302A;   /* text: olive ink */
+    --ink-2:   #56625A;   /* secondary text */
+    --rule:    #C5CBC1;   /* borders */
+    --marking: #F0B323;   /* highlight: marking yellow */
+    --steel:   #2C5A78;   /* links and focus */
+    --warn-bg: #FBEBC0;
+    --code-bg: #28332C;
+    --code-fg: #DCE3D5;
+    --code-dim:#8C9A8C;
+    --code-val:#F0B323;
+    --radius: 4px;
+    --font: "Barlow", system-ui, -apple-system, "Segoe UI", sans-serif;
+    --font-cond: "Barlow Condensed", "Arial Narrow", system-ui, sans-serif;
+    --font-mono: "JetBrains Mono", ui-monospace, Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --field:   #1C221F;
+      --paper:   #252D28;
+      --ink:     #E2E7DD;
+      --ink-2:   #A3AEA4;
+      --rule:    #3A453E;
+      --steel:   #8DBBD9;
+      --warn-bg: #4A3D17;
+      --code-bg: #141916;
+    }
+  }
+  :root[data-theme="dark"] {
+    --field:   #1C221F;
+    --paper:   #252D28;
+    --ink:     #E2E7DD;
+    --ink-2:   #A3AEA4;
+    --rule:    #3A453E;
+    --steel:   #8DBBD9;
+    --warn-bg: #4A3D17;
+    --code-bg: #141916;
+  }
+
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    background: var(--field);
+    color: var(--ink);
+    font: 400 17px/1.55 var(--font);
+  }
+  a { color: var(--steel); text-underline-offset: 2px; }
+  :focus-visible { outline: 2px solid var(--steel); outline-offset: 2px; }
+  code { font-family: var(--font-mono); font-size: .86em; }
+
+  .wrap { max-width: 1240px; margin: 0 auto; padding: 0 16px; }
+
+  /* ------------------------------------------------------------------
+     Header
+     ------------------------------------------------------------------ */
+  header.top { padding: 40px 0 28px; }
+  header.top h1 {
+    font: 700 clamp(40px, 7vw, 76px)/.92 var(--font-cond);
+    letter-spacing: -.01em;
+    margin: 0 0 14px;
+    max-width: 14ch;
+  }
+  header.top p { margin: 0; max-width: 60ch; color: var(--ink-2); font-size: 18px; }
+  header.top .script-link { margin-top: 12px; font-size: 16px; }
+
+  /* ------------------------------------------------------------------
+     Main grid: form left, live output right
+     ------------------------------------------------------------------ */
+  .grid {
+    display: grid;
+    grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+    gap: 32px;
+    align-items: start;
+    padding-bottom: 48px;
+  }
+  @media (max-width: 920px) { .grid { grid-template-columns: 1fr; } }
+
+  /* Form */
+  form { display: grid; gap: 26px; }
+  fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
+  .step { display: grid; grid-template-columns: 34px 1fr; gap: 0 12px; }
+  .step-n {
+    font: 700 26px/1 var(--font-cond);
+    color: var(--ink-2);
+    padding-top: 2px;
+  }
+  .step legend, .step h2 {
+    font: 600 22px/1.15 var(--font-cond);
+    margin: 0 0 10px; padding: 0;
+  }
+  .step-body { min-width: 0; }
+  .hint { color: var(--ink-2); font-size: 15px; margin: 6px 0 0; }
+
+  select, input[type="number"] {
+    width: 100%;
+    font: 500 16px/1.3 var(--font);
+    color: var(--ink);
+    background: var(--paper);
+    border: 1px solid var(--rule);
+    border-radius: var(--radius);
+    padding: 10px 12px;
+  }
+  select { appearance: none; padding-right: 34px;
+    background-image: linear-gradient(45deg, transparent 50%, var(--ink-2) 50%), linear-gradient(135deg, var(--ink-2) 50%, transparent 50%);
+    background-position: calc(100% - 18px) 50%, calc(100% - 13px) 50%;
+    background-size: 5px 5px; background-repeat: no-repeat; }
+  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  @media (max-width: 440px) { .row2 { grid-template-columns: 1fr; } }
+  .field-label { display: block; font-weight: 600; font-size: 15px; margin: 0 0 4px; }
+  .manual { margin-top: 10px; display: none; }
+  .manual.on { display: grid; }
+
+  /* Segmented choices (game, system, VRR) */
+  .seg { display: flex; flex-wrap: wrap; border: 1px solid var(--rule); border-radius: var(--radius); overflow: hidden; background: var(--paper); }
+  .seg label { flex: 1 1 0; min-width: 0; position: relative; }
+  .seg input { position: absolute; opacity: 0; inset: 0; margin: 0; cursor: pointer; }
+  .seg span {
+    display: block; text-align: center; padding: 10px 8px;
+    font: 600 17px/1.2 var(--font-cond);
+    border-left: 1px solid var(--rule);
+  }
+  .seg label:first-child span { border-left: 0; }
+  .seg input:checked + span { background: var(--ink); color: var(--field); }
+  .seg input:focus-visible + span { outline: 2px solid var(--steel); outline-offset: -3px; }
+  .seg.game span { font-size: 21px; padding: 12px 8px; }
+
+  .checks { display: grid; gap: 8px; }
+  .checks label { display: flex; gap: 10px; align-items: flex-start; font-size: 16px; }
+  .checks input { margin-top: 5px; accent-color: var(--ink); width: 16px; height: 16px; }
+
+  /* Upload */
+  .drop {
+    display: block;
+    border: 1.5px dashed var(--rule);
+    border-radius: var(--radius);
+    padding: 16px;
+    background: var(--paper);
+    text-align: center;
+    cursor: pointer;
+  }
+  .drop.over { border-color: var(--steel); }
+  .drop .hint { display: block; }
+  .drop strong { display: block; font: 600 18px/1.2 var(--font-cond); }
+  .drop .hint { margin-top: 4px; }
+  .file-state { display: none; align-items: center; justify-content: space-between; gap: 10px;
+    background: var(--paper); border: 1px solid var(--rule); border-radius: var(--radius); padding: 10px 12px; }
+  .file-state.on { display: flex; }
+  .file-state button { flex: none; }
+
+  /* Buttons */
+  button, .btn {
+    font: 600 16px/1 var(--font-cond);
+    letter-spacing: .01em;
+    border-radius: var(--radius);
+    border: 1px solid var(--ink);
+    background: transparent;
+    color: var(--ink);
+    padding: 9px 14px;
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-flex; align-items: center; gap: 6px;
+  }
+  button.primary, .btn.primary { background: var(--ink); color: var(--field); }
+  button:hover { filter: brightness(1.08); }
+
+  /* ------------------------------------------------------------------
+     Output panel
+     ------------------------------------------------------------------ */
+  .out { position: sticky; top: 16px; min-width: 0; }
+  @media (max-width: 920px) { .out { position: static; } }
+
+  .summary {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    border: 1px solid var(--rule);
+    border-bottom: 0;
+    border-radius: var(--radius) var(--radius) 0 0;
+    background: var(--paper);
+  }
+  .summary div { padding: 10px 12px; border-left: 1px solid var(--rule); min-width: 0; }
+  .summary div:first-child { border-left: 0; }
+  .summary dt { font-size: 13px; color: var(--ink-2); margin: 0; }
+  .summary dd { margin: 0; font: 700 24px/1.1 var(--font-cond); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  @media (max-width: 520px) {
+    .summary { grid-template-columns: 1fr 1fr; }
+    .summary div:nth-child(3) { border-left: 0; }
+    .summary div:nth-child(n+3) { border-top: 1px solid var(--rule); }
+  }
+
+  .tabs { display: flex; gap: 0; background: var(--code-bg); border-radius: 0; overflow-x: auto; }
+  .tabs button {
+    border: 0; border-radius: 0;
+    color: var(--code-dim);
+    padding: 12px 16px;
+    font: 500 14px/1 var(--font-mono);
+    letter-spacing: 0;
+    white-space: nowrap;
+    border-bottom: 2px solid transparent;
+  }
+  .tabs button[aria-selected="true"] { color: var(--code-fg); border-bottom-color: var(--marking); }
+  .tabs button:focus-visible { outline-offset: -3px; }
+
+  .panel { background: var(--code-bg); color: var(--code-fg); border-radius: 0 0 var(--radius) var(--radius); }
+  .panel-note { margin: 0; padding: 12px 16px 0; font-size: 14px; color: var(--code-dim); }
+  .panel-note.warn { color: var(--code-val); }
+  pre.code {
+    margin: 0;
+    padding: 12px 0 16px;
+    font: 400 14px/1.7 var(--font-mono);
+    overflow: auto;
+    max-height: 62vh;
+    counter-reset: ln;
+  }
+  pre.code .ln { display: block; padding: 0 16px 0 0; white-space: pre; }
+  pre.code .ln::before {
+    counter-increment: ln; content: counter(ln);
+    display: inline-block; width: 3.2em; padding-right: 1em; text-align: right;
+    color: var(--code-dim); opacity: .6; user-select: none;
+  }
+  pre.code .k { color: var(--code-fg); }
+  pre.code .v { color: var(--code-val); }
+  pre.code .ln.changed { animation: mark 1.6s ease-out; }
+  @keyframes mark {
+    0%, 30% { background: rgba(240, 179, 35, .28); }
+    100%    { background: transparent; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    pre.code .ln.changed { animation: none; background: rgba(240, 179, 35, .14); }
+  }
+
+  .actions { display: flex; flex-wrap: wrap; gap: 8px; padding: 0 16px 16px; }
+  .actions button { border-color: var(--code-dim); color: var(--code-fg); }
+  .actions button.primary { background: var(--marking); border-color: var(--marking); color: #26302A; }
+  .toast { color: var(--code-val); font-size: 14px; align-self: center; min-height: 1em; }
+
+  /* Explanation table inside the panel */
+  .why { padding: 4px 16px 16px; max-height: 62vh; overflow: auto; }
+  .why h3 { font: 600 18px/1.2 var(--font-cond); margin: 16px 0 6px; color: var(--code-fg); }
+  .why table { width: 100%; border-collapse: collapse; font-size: 14.5px; }
+  .why th, .why td { text-align: left; vertical-align: top; padding: 7px 8px 7px 0; border-top: 1px solid rgba(255,255,255,.08); }
+  .why th { font-weight: 500; color: var(--code-dim); font-size: 13px; }
+  .why td:first-child { color: var(--code-fg); white-space: nowrap; }
+  .why td.val { color: var(--code-val); font-family: var(--font-mono); font-size: 13px; white-space: nowrap; }
+  .why td.from { color: var(--code-dim); font-family: var(--font-mono); font-size: 13px; white-space: nowrap; }
+  .why td.reason { color: #B9C3B4; }
+  @media (max-width: 600px) { .why td:first-child { white-space: normal; } }
+
+  /* Warnings under the summary */
+  .notes { margin: 14px 0 0; padding: 0; list-style: none; display: grid; gap: 8px; }
+  .notes li { background: var(--warn-bg); border-radius: var(--radius); padding: 10px 12px; font-size: 15px; }
+  .notes li.info { background: var(--paper); border: 1px solid var(--rule); }
+
+  /* ------------------------------------------------------------------
+     Lower sections: install + driver settings
+     ------------------------------------------------------------------ */
+  .lower { border-top: 1px solid var(--rule); padding: 36px 0 12px; }
+  .lower h2 { font: 700 34px/1 var(--font-cond); margin: 0 0 18px; }
+  .install { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 28px; }
+  @media (max-width: 760px) { .install { grid-template-columns: 1fr; } }
+  .install h3 { font: 600 22px/1.2 var(--font-cond); margin: 0 0 6px; }
+  .install h3 code { font-size: 18px; background: var(--paper); border: 1px solid var(--rule); border-radius: var(--radius); padding: 1px 6px; }
+  .path {
+    font-family: var(--font-mono); font-size: 14px;
+    background: var(--paper); border: 1px solid var(--rule); border-left: 4px solid var(--marking);
+    border-radius: var(--radius); padding: 8px 10px; margin: 8px 0; overflow-wrap: anywhere;
+  }
+  .install ul, .driver ul { padding-left: 20px; margin: 8px 0; }
+  .install li, .driver li { margin: 4px 0; }
+  .driver { max-width: 72ch; }
+
+  footer { border-top: 1px solid var(--rule); padding: 24px 0 40px; color: var(--ink-2); font-size: 14px; }
+  footer p { margin: 6px 0; max-width: 80ch; }
+  .theme-toggle { float: right; font-size: 14px; padding: 6px 10px; }
+
+  .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header class="top">
+    <h1>Tuned Battlefield configs for your PC</h1>
+    <p>Pick your hardware and get a <code>user.cfg</code> and <code>PROFSAVE_profile</code> built for it, with every setting explained. Everything runs in your browser. Nothing is uploaded.</p>
+    <p class="script-link">On Windows and want automatic detection? <a id="scriptLink" href="#">Download the optimizer script</a>.</p>
+  </header>
+
+  <div class="grid">
+    <!-- ============================ FORM ============================ -->
+    <form id="f" autocomplete="off" onsubmit="return false">
+
+      <fieldset class="step">
+        <span class="step-n" aria-hidden="true">1</span>
+        <div class="step-body">
+          <legend>Game</legend>
+          <div class="seg game" role="radiogroup">
+            <label><input type="radio" name="game" value="bf4" checked><span>Battlefield 4</span></label>
+            <label><input type="radio" name="game" value="bf1"><span>Battlefield 1</span></label>
+          </div>
+        </div>
+      </fieldset>
+
+      <div class="step">
+        <span class="step-n" aria-hidden="true">2</span>
+        <div class="step-body">
+          <h2><label for="cpu">Processor</label></h2>
+          <select id="cpu" name="cpu"></select>
+          <div class="manual row2" id="cpuManual">
+            <div>
+              <label class="field-label" for="threads">Threads</label>
+              <input type="number" id="threads" min="2" max="128" step="1" value="8">
+            </div>
+            <p class="hint" style="align-self:end;margin:0 0 6px">Task Manager &gt; Performance &gt; CPU shows "Logical processors".</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <span class="step-n" aria-hidden="true">3</span>
+        <div class="step-body">
+          <h2><label for="gpu">Graphics card</label></h2>
+          <select id="gpu" name="gpu"></select>
+          <div class="manual row2" id="gpuManual">
+            <div>
+              <label class="field-label" for="gpuVendor">Brand</label>
+              <select id="gpuVendor">
+                <option value="nvidia">NVIDIA</option>
+                <option value="amd">AMD</option>
+                <option value="intel">Intel</option>
+              </select>
+            </div>
+            <div>
+              <label class="field-label" for="gpuTier">Performance</label>
+              <select id="gpuTier">
+                <option value="3">High (8 GB+ VRAM, recent)</option>
+                <option value="2" selected>Medium (4 to 7 GB)</option>
+                <option value="1">Low (integrated or under 4 GB)</option>
+              </select>
+            </div>
+          </div>
+          <p class="hint">Laptop GPUs use the same tiers as their desktop versions.</p>
+        </div>
+      </div>
+
+      <div class="step">
+        <span class="step-n" aria-hidden="true">4</span>
+        <div class="step-body">
+          <h2><label for="ram">Memory (RAM)</label></h2>
+          <select id="ram" name="ram"></select>
+        </div>
+      </div>
+
+      <fieldset class="step">
+        <span class="step-n" aria-hidden="true">5</span>
+        <div class="step-body">
+          <legend>Display and system</legend>
+          <div class="row2">
+            <div>
+              <label class="field-label" for="hz">Refresh rate</label>
+              <select id="hz" name="hz"></select>
+            </div>
+            <div>
+              <span class="field-label" id="sysLbl">PC type</span>
+              <div class="seg" role="radiogroup" aria-labelledby="sysLbl">
+                <label><input type="radio" name="sys" value="desktop" checked><span>Desktop</span></label>
+                <label><input type="radio" name="sys" value="laptop"><span>Laptop</span></label>
+              </div>
+            </div>
+          </div>
+          <div style="margin-top:12px">
+            <span class="field-label" id="vrrLbl">G-Sync / FreeSync enabled in your driver?</span>
+            <div class="seg" role="radiogroup" aria-labelledby="vrrLbl">
+              <label><input type="radio" name="vrr" value="0" checked><span>No / not sure</span></label>
+              <label><input type="radio" name="vrr" value="1"><span>Yes</span></label>
+            </div>
+            <p class="hint">Only choose Yes if it's turned on in the NVIDIA Control Panel or AMD Software, not just supported by the monitor.</p>
+          </div>
+        </div>
+      </fieldset>
+
+      <fieldset class="step">
+        <span class="step-n" aria-hidden="true">6</span>
+        <div class="step-body">
+          <legend>Your current profile <span style="font-weight:500;color:var(--ink-2)">(recommended)</span></legend>
+          <label class="drop" id="drop" for="file">
+            <strong>Load your PROFSAVE_profile</strong>
+            <span class="hint" id="dropHint">Keeps your keybinds, sensitivity, FOV and audio. Find it in Documents\Battlefield 4\settings.</span>
+          </label>
+          <input type="file" id="file" class="sr">
+          <div class="file-state" id="fileState">
+            <span id="fileName"></span>
+            <button type="button" id="clearFile">Remove</button>
+          </div>
+        </div>
+      </fieldset>
+
+      <fieldset class="step">
+        <span class="step-n" aria-hidden="true">7</span>
+        <div class="step-body">
+          <legend>On-screen extras</legend>
+          <div class="checks">
+            <label><input type="checkbox" id="exFps" checked> FPS counter</label>
+            <label><input type="checkbox" id="exGraph"> CPU and GPU frame time graph, to see what limits your FPS</label>
+            <label><input type="checkbox" id="exLog"> Save frame times to a file, for before and after benchmarks</label>
+          </div>
+        </div>
+      </fieldset>
+    </form>
+
+    <!-- ============================ OUTPUT ============================ -->
+    <section class="out" aria-label="Generated files">
+      <dl class="summary" id="summary"></dl>
+      <div class="tabs" role="tablist">
+        <button type="button" role="tab" id="t-cfg"  aria-controls="p-cfg"  aria-selected="true">user.cfg</button>
+        <button type="button" role="tab" id="t-prof" aria-controls="p-prof" aria-selected="false" tabindex="-1">PROFSAVE_profile</button>
+        <button type="button" role="tab" id="t-why"  aria-controls="p-why"  aria-selected="false" tabindex="-1">Why these values</button>
+      </div>
+      <div class="panel">
+        <div role="tabpanel" id="p-cfg" aria-labelledby="t-cfg">
+          <p class="panel-note">Goes in the game's install folder, next to the game's .exe.</p>
+          <pre class="code" id="cfgCode" tabindex="0"></pre>
+          <div class="actions">
+            <button type="button" class="primary" data-dl="cfg">Download user.cfg</button>
+            <button type="button" data-copy="cfg">Copy</button>
+            <span class="toast" aria-live="polite"></span>
+          </div>
+        </div>
+        <div role="tabpanel" id="p-prof" aria-labelledby="t-prof" hidden>
+          <p class="panel-note" id="profNote"></p>
+          <pre class="code" id="profCode" tabindex="0"></pre>
+          <div class="actions">
+            <button type="button" class="primary" data-dl="prof">Download PROFSAVE_profile</button>
+            <button type="button" data-copy="prof">Copy</button>
+            <span class="toast" aria-live="polite"></span>
+          </div>
+        </div>
+        <div role="tabpanel" id="p-why" aria-labelledby="t-why" hidden>
+          <div class="why" id="why"></div>
+        </div>
+      </div>
+      <ul class="notes" id="notes"></ul>
+      <div style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+        <button type="button" id="share">Copy link to this setup</button>
+        <span class="toast" id="shareToast" aria-live="polite"></span>
+      </div>
+    </section>
+  </div>
+
+  <!-- ============================ INSTALL ============================ -->
+  <section class="lower" aria-labelledby="installH">
+    <h2 id="installH">Where the files go</h2>
+    <div class="install">
+      <div>
+        <h3><code>user.cfg</code></h3>
+        <p style="margin:0">The game's install folder, in the same folder as <code id="exeName">bf4.exe</code>:</p>
+        <div id="gamePaths"></div>
+        <ul>
+          <li><strong>EA app:</strong> right-click the game &gt; View properties &gt; Browse.</li>
+          <li><strong>Steam:</strong> right-click the game &gt; Manage &gt; Browse local files.</li>
+          <li>Make sure Windows doesn't save it as <code>user.cfg.txt</code>.</li>
+        </ul>
+      </div>
+      <div>
+        <h3><code>PROFSAVE_profile</code></h3>
+        <p style="margin:0">Your Documents folder:</p>
+        <div class="path" id="profPath"></div>
+        <ul>
+          <li>Close the game first. It rewrites this file when it exits.</li>
+          <li>Back up the old file before replacing it.</li>
+          <li>Changing video options in-game later overwrites these values.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section class="lower driver" aria-labelledby="driverH">
+    <h2 id="driverH">Driver settings</h2>
+    <div id="driver"></div>
+  </section>
+
+  <footer>
+    <button type="button" class="theme-toggle" id="theme">Switch theme</button>
+    <p>Open source. Settings and sources are on <a id="repoLink" href="#">GitHub</a>, where you can report a missing CPU or GPU.</p>
+    <p>Not affiliated with, endorsed by or connected to Electronic Arts or DICE. Battlefield is a trademark of Electronic Arts Inc. Use at your own risk and keep backups of your settings.</p>
+  </footer>
+</div>
+
+<script>
+/* ======================================================================
+   Battlefield Config Builder
+   Generates user.cfg and PROFSAVE_profile from hardware the user picks.
+   Same logic as the Windows script in the repository.
+   ====================================================================== */
+
+// Repository links (change these if you fork the project)
+const REPO_URL   = "https://github.com/j0p3s/Battlefield-4-user.cfg-and-profsave_profile-generator-and-optimizer";
+const SCRIPT_URL = REPO_URL + "/releases/latest";
+
+/* ----------------------------------------------------------------------
+   Hardware lists
+   CPU entries: [name, threads]
+   GPU entries: [name, tier, VRAM in GB]   tier: 3 = High, 2 = Medium, 1 = Low
+   ---------------------------------------------------------------------- */
+const CPUS = [
+  { g: "Intel Core Ultra (desktop)", items: [["Core Ultra 9 285K",24],["Core Ultra 7 265K",20],["Core Ultra 5 245K",14]] },
+  { g: "Intel 14th gen", items: [["Core i9-14900K",32],["Core i7-14700K",28],["Core i5-14600K",20],["Core i5-14400F",16],["Core i3-14100F",8]] },
+  { g: "Intel 13th gen", items: [["Core i9-13900K",32],["Core i7-13700K",24],["Core i5-13600K",20],["Core i5-13400F",16],["Core i3-13100F",8]] },
+  { g: "Intel 12th gen", items: [["Core i9-12900K",24],["Core i7-12700K",20],["Core i5-12600K",16],["Core i5-12400F",12],["Core i3-12100F",8]] },
+  { g: "Intel 11th gen", items: [["Core i9-11900K",16],["Core i7-11700K",16],["Core i5-11600K",12],["Core i5-11400F",12]] },
+  { g: "Intel 10th gen", items: [["Core i9-10900K",20],["Core i7-10700K",16],["Core i5-10600K",12],["Core i5-10400F",12],["Core i3-10100F",8]] },
+  { g: "Intel 9th gen", items: [["Core i9-9900K",16],["Core i7-9700K",8],["Core i5-9600K",6],["Core i5-9400F",6],["Core i3-9100F",4]] },
+  { g: "Intel 8th gen", items: [["Core i7-8700K",12],["Core i7-8700",12],["Core i5-8600K",6],["Core i5-8400",6],["Core i3-8100",4]] },
+  { g: "Intel 7th and 6th gen", items: [["Core i7-7700K",8],["Core i5-7600K",4],["Core i5-7500",4],["Core i3-7100",4],["Core i7-6700K",8],["Core i5-6600K",4],["Core i5-6500",4]] },
+  { g: "Intel 4th gen and older", items: [["Core i7-4790K",8],["Core i7-4770K",8],["Core i5-4690K",4],["Core i5-4460",4],["Core i7-3770K",8],["Core i5-3570K",4],["Core i7-2600K",8],["Core i5-2500K",4]] },
+  { g: "Intel laptop", laptop: true, items: [["Core i9-13980HX",32],["Core i7-13700H",20],["Core i7-12700H",20],["Core i5-12500H",16],["Core i7-11800H",16],["Core i5-11400H",12],["Core i7-10750H",12],["Core i5-10300H",8],["Core i7-9750H",12],["Core i7-8750H",12],["Core i7-1165G7",8],["Core i5-1135G7",8]] },
+  { g: "AMD Ryzen 9000", items: [["Ryzen 9 9950X3D",32],["Ryzen 9 9950X",32],["Ryzen 9 9900X",24],["Ryzen 7 9800X3D",16],["Ryzen 7 9700X",16],["Ryzen 5 9600X",12]] },
+  { g: "AMD Ryzen 7000", items: [["Ryzen 9 7950X3D",32],["Ryzen 9 7950X",32],["Ryzen 9 7900X",24],["Ryzen 7 7800X3D",16],["Ryzen 7 7700X",16],["Ryzen 5 7600X",12],["Ryzen 5 7600",12]] },
+  { g: "AMD Ryzen 5000", items: [["Ryzen 9 5950X",32],["Ryzen 9 5900X",24],["Ryzen 7 5800X3D",16],["Ryzen 7 5800X",16],["Ryzen 7 5700X",16],["Ryzen 7 5700G",16],["Ryzen 5 5600X",12],["Ryzen 5 5600",12],["Ryzen 5 5600G",12],["Ryzen 5 5500",12]] },
+  { g: "AMD Ryzen 3000", items: [["Ryzen 9 3950X",32],["Ryzen 9 3900X",24],["Ryzen 7 3700X",16],["Ryzen 5 3600",12],["Ryzen 3 3300X",8],["Ryzen 3 3100",8],["Ryzen 5 3400G",8],["Ryzen 3 3200G",4]] },
+  { g: "AMD Ryzen 2000 and 1000", items: [["Ryzen 7 2700X",16],["Ryzen 5 2600",12],["Ryzen 5 2400G",8],["Ryzen 7 1700",16],["Ryzen 5 1600",12],["Ryzen 5 1400",8],["Ryzen 3 1200",4]] },
+  { g: "AMD laptop", laptop: true, items: [["Ryzen 9 8945HS",16],["Ryzen 7 7840HS",16],["Ryzen 7 6800H",16],["Ryzen 7 5800H",16],["Ryzen 5 5600H",12],["Ryzen 7 4800H",16],["Ryzen 5 4600H",12],["Ryzen 5 7530U",12],["Ryzen 5 5500U",12]] },
+  { g: "AMD FX", items: [["FX-8350",8],["FX-6300",6],["FX-4300",4]] },
+];
+
+const GPUS = [
+  { g: "NVIDIA RTX 50", v: "nvidia", items: [["RTX 5090",3,32],["RTX 5080",3,16],["RTX 5070 Ti",3,16],["RTX 5070",3,12],["RTX 5060 Ti",3,16],["RTX 5060",3,8]] },
+  { g: "NVIDIA RTX 40", v: "nvidia", items: [["RTX 4090",3,24],["RTX 4080 SUPER",3,16],["RTX 4080",3,16],["RTX 4070 Ti SUPER",3,16],["RTX 4070 Ti",3,12],["RTX 4070 SUPER",3,12],["RTX 4070",3,12],["RTX 4060 Ti",3,8],["RTX 4060",3,8]] },
+  { g: "NVIDIA RTX 30", v: "nvidia", items: [["RTX 3090 Ti",3,24],["RTX 3090",3,24],["RTX 3080 Ti",3,12],["RTX 3080",3,10],["RTX 3070 Ti",3,8],["RTX 3070",3,8],["RTX 3060 Ti",3,8],["RTX 3060",3,12],["RTX 3050",2,8]] },
+  { g: "NVIDIA RTX 20", v: "nvidia", items: [["RTX 2080 Ti",3,11],["RTX 2080 SUPER",3,8],["RTX 2080",3,8],["RTX 2070 SUPER",3,8],["RTX 2070",3,8],["RTX 2060 SUPER",3,8],["RTX 2060",3,6]] },
+  { g: "NVIDIA RTX laptop", v: "nvidia", laptop: true, items: [["RTX 4090 Laptop",3,16],["RTX 4080 Laptop",3,12],["RTX 4070 Laptop",3,8],["RTX 4060 Laptop",3,8],["RTX 4050 Laptop",3,6],["RTX 3080 Ti Laptop",3,16],["RTX 3080 Laptop",3,16],["RTX 3070 Laptop",3,8],["RTX 3060 Laptop",3,6],["RTX 3050 Ti Laptop",2,4],["RTX 3050 Laptop",2,4],["RTX 2080 Laptop",3,8],["RTX 2070 Laptop",3,8],["RTX 2060 Laptop",3,6],["RTX 2050 Laptop",2,4]] },
+  { g: "NVIDIA GTX 16", v: "nvidia", items: [["GTX 1660 SUPER",3,6],["GTX 1660 Ti",3,6],["GTX 1660",2,6],["GTX 1650 SUPER",2,4],["GTX 1650",2,4],["GTX 1630",1,4]] },
+  { g: "NVIDIA GTX 10", v: "nvidia", items: [["GTX 1080 Ti",3,11],["GTX 1080",3,8],["GTX 1070 Ti",3,8],["GTX 1070",3,8],["GTX 1060 6GB",2,6],["GTX 1060 3GB",2,3],["GTX 1050 Ti",1,4],["GTX 1050",1,2],["GT 1030",1,2]] },
+  { g: "NVIDIA GTX 900 and older", v: "nvidia", items: [["GTX 980 Ti",3,6],["GTX 980",2,4],["GTX 970",2,4],["GTX 960",1,2],["GTX 950",1,2],["GTX 780 Ti",1,3],["GTX 770",1,2],["GTX 750 Ti",1,2]] },
+  { g: "NVIDIA MX (laptop)", v: "nvidia", laptop: true, items: [["MX550",1,2],["MX450",1,2],["MX350",1,2]] },
+  { g: "AMD RX 9000", v: "amd", items: [["RX 9070 XT",3,16],["RX 9070",3,16],["RX 9060 XT",3,16]] },
+  { g: "AMD RX 7000", v: "amd", items: [["RX 7900 XTX",3,24],["RX 7900 XT",3,20],["RX 7900 GRE",3,16],["RX 7800 XT",3,16],["RX 7700 XT",3,12],["RX 7600 XT",3,16],["RX 7600",3,8]] },
+  { g: "AMD RX 6000", v: "amd", items: [["RX 6950 XT",3,16],["RX 6900 XT",3,16],["RX 6800 XT",3,16],["RX 6800",3,16],["RX 6750 XT",3,12],["RX 6700 XT",3,12],["RX 6650 XT",3,8],["RX 6600 XT",3,8],["RX 6600",3,8],["RX 6500 XT",2,4],["RX 6400",1,4]] },
+  { g: "AMD laptop", v: "amd", laptop: true, items: [["RX 7600S",3,8],["RX 6800M",3,12],["RX 6700M",3,10],["RX 6600M",3,8],["RX 6500M",2,4]] },
+  { g: "AMD RX 5000 and Vega", v: "amd", items: [["RX 5700 XT",3,8],["RX 5700",3,8],["RX 5600 XT",2,6],["RX 5500 XT",2,8],["Radeon VII",3,16],["RX Vega 64",3,8],["RX Vega 56",3,8]] },
+  { g: "AMD RX 500 / 400 and older", v: "amd", items: [["RX 590",2,8],["RX 580",2,8],["RX 570",2,4],["RX 480",2,8],["RX 470",2,4],["RX 560",1,4],["RX 550",1,2],["RX 460",1,4],["R9 390",2,8],["R9 380",1,4],["R7 370",1,2]] },
+  { g: "AMD integrated", v: "amd", items: [["Radeon 890M / 880M",1,2],["Radeon 780M",1,2],["Radeon 680M",1,2],["Radeon Vega 8 / 11",1,2],["Radeon Graphics (Ryzen)",1,2]] },
+  { g: "Intel Arc", v: "intel", items: [["Arc B580",3,12],["Arc B570",3,10],["Arc A770",3,16],["Arc A750",3,8],["Arc A580",2,8],["Arc A380",2,6],["Arc A370M (laptop)",1,4]] },
+  { g: "Intel integrated", v: "intel", items: [["Arc Graphics (Core Ultra)",1,2],["Iris Xe",1,2],["UHD Graphics 770 / 630",1,2],["HD Graphics 4600 / 530",1,2]] },
+];
+
+const RAM_OPTIONS = [4, 6, 8, 12, 16, 24, 32, 48, 64, 96, 128];
+const HZ_OPTIONS  = [60, 75, 90, 100, 120, 144, 165, 170, 175, 180, 200, 240, 280, 360, 480];
+
+/* ----------------------------------------------------------------------
+   Per-game data
+   ---------------------------------------------------------------------- */
+const GAMES = {
+  bf4: {
+    name: "Battlefield 4", exe: "bf4.exe", steamId: 1238860,
+    minRam: 4,
+    folders: [
+      "C:\\Program Files (x86)\\Origin Games\\Battlefield 4",
+      "C:\\Program Files\\EA Games\\Battlefield 4",
+      "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Battlefield 4",
+    ],
+    profile: "Documents\\Battlefield 4\\settings\\PROFSAVE_profile",
+    aaPost: ["Off", "Low", "Medium", "High"],
+  },
+  bf1: {
+    name: "Battlefield 1", exe: "bf1.exe", steamId: 1238840,
+    minRam: 8,
+    folders: [
+      "C:\\Program Files (x86)\\Origin Games\\Battlefield 1",
+      "C:\\Program Files\\EA Games\\Battlefield 1",
+      "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Battlefield 1",
+    ],
+    profile: "Documents\\Battlefield 1\\settings\\PROFSAVE_profile",
+    aaPost: ["Off", "FXAA Medium", "FXAA High", "TAA"],
+  },
+};
+
+/* Friendly names and value formats for the explanation table.
+   q = Low/Medium/High/Ultra, onoff = Off/On, af = anisotropic, pct = scale */
+const LABELS = {
+  "GstRender.OverallGraphicsQuality": ["Graphics quality preset", v => v === "4" ? "Custom" : v],
+  "GstRender.TextureQuality":    ["Texture quality", "q"],
+  "GstRender.TextureFiltering":  ["Texture filtering", "q"],
+  "GstRender.MeshQuality":       ["Mesh quality", "q"],
+  "GstRender.TerrainQuality":    ["Terrain quality", "q"],
+  "GstRender.UndergrowthQuality":["Undergrowth quality", "q"],
+  "GstRender.EffectsQuality":    ["Effects quality", "q"],
+  "GstRender.LightingQuality":   ["Lighting quality", "q"],
+  "GstRender.ShadowQuality":     ["Shadow quality", "q"],
+  "GstRender.PostProcessQuality":["Post-process quality", "q"],
+  "GstRender.AnisotropicFilter": ["Anisotropic filtering", "af"],
+  "GstRender.AntiAliasingDeferred": ["Antialiasing deferred (MSAA)", v => ["Off","2x MSAA","4x MSAA"][+v] || v],
+  "GstRender.AntiAliasingPost":  ["Antialiasing post", "aa"],
+  "GstRender.ResolutionScale":   ["Resolution scale", "pct"],
+  "GstRender.AmbientOcclusion":  ["Ambient occlusion", v => v === "0" ? "Off" : "On"],
+  "GstRender.Enlighten":         ["Enlighten (dynamic GI)", "onoff"],
+  "GstRender.MotionBlurEnabled": ["Motion blur", "onoff"],
+  "GstRender.MotionBlur":        ["Motion blur strength", v => Math.round(parseFloat(v) * 100) + "%"],
+  "GstRender.TransparentShadows":["Transparent shadows", "onoff"],
+  "GstRender.WeaponDOF":         ["Weapon depth of field", "onoff"],
+  "GstRender.VSyncEnabled":      ["Vertical sync", "onoff"],
+  "GstRender.Dx12Enabled":       ["DirectX 12", "onoff"],
+  "GstRender.Dx12AutoDetect":    ["DirectX 12 auto-detect", "onoff"],
+  "GstRender.ChromaticAberration": ["Chromatic aberration", "onoff"],
+  "GstRender.FilmGrain":         ["Film grain", "onoff"],
+  "GstRender.LensDistortion":    ["Lens distortion", "onoff"],
+  "GstRender.SniperSweetspotDoF":["Sniper sweet spot DOF", "onoff"],
+  "GstRender.ClampGpuMemory":    ["GPU memory restriction", "onoff"],
+  "GstInput.HeadtrackingEnabled":["Head tracking", "onoff"],
+  "GstInput.SpeechRecognitionEnabled": ["Speech recognition", "onoff"],
+};
+
+/* Why each profile value is chosen (shown in the "Why these values" tab) */
+const REASONS = {
+  "GstRender.OverallGraphicsQuality": "Required so the individual settings below are used.",
+  "GstRender.TextureQuality":   "Textures barely cost FPS when there's enough VRAM, and sharp textures help you read targets at range.",
+  "GstRender.TextureFiltering": "Matches texture quality.",
+  "GstRender.MeshQuality":      "Controls level of detail at distance. Kept high where possible so players and cover don't pop in. Uses CPU draw calls.",
+  "GstRender.TerrainQuality":   "Terrain detail at distance. Lowered on weak CPUs, since it adds draw calls.",
+  "GstRender.UndergrowthQuality": "Low means less grass and bushes hiding prone players. A competitive choice: the game looks emptier.",
+  "GstRender.EffectsQuality":   "Lighter smoke, explosions and particles: easier to see through and fewer FPS drops in busy fights.",
+  "GstRender.LightingQuality":  "Less sun glare and bloom with a moderate FPS gain.",
+  "GstRender.ShadowQuality":    "Shadows are expensive. Medium keeps them readable without the cost of High or Ultra.",
+  "GstRender.PostProcessQuality": "Low removes most bloom and haze, so enemies stand out more. The image looks less cinematic.",
+  "GstRender.AnisotropicFilter": "Sharper textures at angles for almost no cost.",
+  "GstRender.AntiAliasingDeferred": "MSAA is extremely expensive in Frostbite's deferred renderer and can cost a large share of your FPS.",
+  "GstRender.AntiAliasingPost": "Cheap edge smoothing. On High tier in BF4, resolution scale replaces it.",
+  "GstRender.ResolutionScale":  "In BF4 on High tier, rendering at 125% gives a sharper image than MSAA for less cost. Otherwise native resolution.",
+  "GstRender.AmbientOcclusion": "Big performance cost and no gameplay benefit. Lighting looks a bit flatter.",
+  "GstRender.Enlighten":        "Dynamic global illumination. Costs performance, adds little in play.",
+  "GstRender.MotionBlurEnabled":"Blur hides detail when you turn. Off for clarity.",
+  "GstRender.MotionBlur":       "Set to zero in case the toggle is ignored.",
+  "GstRender.TransparentShadows":"Shadows from smoke and particles. Costly in big fights.",
+  "GstRender.WeaponDOF":        "Removes blur around your weapon when aiming.",
+  "GstRender.VSyncEnabled":     "In-game V-Sync adds input lag. With G-Sync/FreeSync, V-Sync belongs in the driver instead.",
+  "GstRender.Dx12Enabled":      "BF1's DirectX 12 mode is known for stutter. DirectX 11 gives steadier frame times.",
+  "GstRender.Dx12AutoDetect":   "Stops the game from switching back to DirectX 12.",
+  "GstRender.ChromaticAberration": "Color fringing at the screen edges. Pure blur.",
+  "GstRender.FilmGrain":        "Noise overlay. Off for a clean image.",
+  "GstRender.LensDistortion":   "Warps the image edges. Off for accurate aim at the periphery.",
+  "GstRender.SniperSweetspotDoF": "Removes blur outside the scope's sweet spot.",
+  "GstRender.ClampGpuMemory":   "Keeps VRAM use inside the card's limit. Turned off on High-tier cards that have plenty of VRAM.",
+  "GstInput.HeadtrackingEnabled": "Unused feature.",
+  "GstInput.SpeechRecognitionEnabled": "Unused feature that can listen to your microphone.",
+};
+
+/* ----------------------------------------------------------------------
+   Settings logic
+   ---------------------------------------------------------------------- */
+function profileSettings(game, tier, threads, ramGB, vramGB) {
+  const s = {};
+  const set = (o) => Object.assign(s, o);
+
+  // Shared by both games and every tier
+  set({
+    "GstRender.OverallGraphicsQuality": "4",
+    "GstRender.AmbientOcclusion": "0",
+    "GstRender.AntiAliasingDeferred": "0",
+    "GstRender.Enlighten": "0",
+    "GstRender.MotionBlur": "0.000000",
+    "GstRender.MotionBlurEnabled": "0",
+    "GstRender.PostProcessQuality": "0",
+    "GstRender.TransparentShadows": "0",
+    "GstRender.UndergrowthQuality": "0",
+    "GstRender.VSyncEnabled": "0",
+    "GstRender.WeaponDOF": "0",
+  });
+
+  if (game === "bf4") {
+    set({ "GstInput.HeadtrackingEnabled": "0", "GstInput.SpeechRecognitionEnabled": "0" });
+  } else {
+    set({
+      "GstRender.Dx12Enabled": "0",
+      "GstRender.Dx12AutoDetect": "0",
+      "GstRender.ChromaticAberration": "0",
+      "GstRender.FilmGrain": "0",
+      "GstRender.LensDistortion": "0",
+      "GstRender.SniperSweetspotDoF": "0",
+    });
+  }
+
+  // Tier values: [texture, mesh, terrain, filtering, aniso, effects, lighting, shadows]
+  const T = { 3: ["3","3","3","3","4","1","1","1"], 2: ["2","2","2","2","4","1","1","1"], 1: ["1","1","1","1","2","0","0","0"] }[tier];
+  set({
+    "GstRender.TextureQuality": T[0], "GstRender.MeshQuality": T[1], "GstRender.TerrainQuality": T[2],
+    "GstRender.TextureFiltering": T[3], "GstRender.AnisotropicFilter": T[4], "GstRender.EffectsQuality": T[5],
+    "GstRender.LightingQuality": T[6], "GstRender.ShadowQuality": T[7],
+  });
+
+  if (game === "bf4") {
+    // BF4: supersampling replaces AA on High tier
+    set({
+      "GstRender.AntiAliasingPost": tier === 3 ? "0" : "1",
+      "GstRender.ResolutionScale": tier === 3 ? "1.250000" : "1.000000",
+    });
+  } else {
+    // BF1: TAA keeps foliage stable on High tier; FXAA below
+    set({
+      "GstRender.AntiAliasingPost": { 3: "3", 2: "2", 1: "1" }[tier],
+      "GstRender.ResolutionScale": "1.000000",
+      "GstRender.ClampGpuMemory": tier === 3 ? "0" : "1",
+    });
+  }
+
+  const cap = (k, max) => { if (+s[k] > max) s[k] = String(max); };
+  const capped = [];
+
+  // Weak CPU: mesh and terrain add draw calls
+  if (threads <= 4) { cap("GstRender.MeshQuality", 1); cap("GstRender.TerrainQuality", 1); capped.push("cpu"); }
+
+  // Low system RAM: texture streaming stutters
+  if (game === "bf4" && ramGB < 8) { cap("GstRender.TextureQuality", 1); cap("GstRender.MeshQuality", 1); capped.push("ram"); }
+  if (game === "bf1") {
+    if (ramGB <= 8)      { cap("GstRender.TextureQuality", 1); s["GstRender.ClampGpuMemory"] = "1"; capped.push("ram"); }
+    else if (ramGB < 16) { cap("GstRender.TextureQuality", 2); s["GstRender.ClampGpuMemory"] = "1"; capped.push("ram"); }
+  }
+  // Small VRAM
+  if (vramGB && vramGB < 4) { cap("GstRender.TextureQuality", 1); }
+
+  return { settings: s, capped };
+}
+
+function frameCap(hz, vrr, laptop, tier, threads) {
+  if (vrr) return { fps: hz - 3, why: `G-Sync/FreeSync on: 3 FPS below ${hz} Hz keeps every frame inside the variable refresh range, avoiding tearing or V-Sync lag at the top.` };
+  const strong = tier >= 3 && threads >= 8;
+  if (laptop || !strong) return { fps: hz, why: `No variable refresh: matching ${hz} Hz keeps frame times even${laptop ? " and laptop temperatures in check" : ""}.` };
+  const fps = Math.min(hz * 2, 300);
+  return { fps, why: `No variable refresh on a strong desktop: running above ${hz} Hz lowers input lag. Expect some tearing.` };
+}
+
+/* ----------------------------------------------------------------------
+   UI setup
+   ---------------------------------------------------------------------- */
+const $ = (id) => document.getElementById(id);
+const el = (tag, attrs = {}, text) => { const e = document.createElement(tag); Object.assign(e, attrs); if (text != null) e.textContent = text; return e; };
+
+function fillCpu() {
+  const sel = $("cpu");
+  CPUS.forEach((grp, gi) => {
+    const og = el("optgroup", { label: grp.g });
+    grp.items.forEach(([n, t], i) => og.appendChild(el("option", { value: `${gi}-${i}` }, `${n} (${t} threads)`)));
+    sel.appendChild(og);
+  });
+  const og = el("optgroup", { label: "Other" });
+  og.appendChild(el("option", { value: "other" }, "Not listed: enter threads"));
+  sel.appendChild(og);
+  sel.value = "7-0"; // i7-8700K as a sensible default
+}
+function fillGpu() {
+  const sel = $("gpu");
+  GPUS.forEach((grp, gi) => {
+    const og = el("optgroup", { label: grp.g });
+    grp.items.forEach(([n, , v], i) => og.appendChild(el("option", { value: `${gi}-${i}` }, `${n} (${v} GB)`)));
+    sel.appendChild(og);
+  });
+  const og = el("optgroup", { label: "Other" });
+  og.appendChild(el("option", { value: "other" }, "Not listed: choose performance"));
+  sel.appendChild(og);
+  sel.value = "2-3"; // RTX 3080
+}
+function fillSimple(id, list, unit, def) {
+  const sel = $(id);
+  list.forEach(v => sel.appendChild(el("option", { value: v }, `${v} ${unit}`)));
+  sel.value = def;
+}
+
+/* ----------------------------------------------------------------------
+   State
+   ---------------------------------------------------------------------- */
+let uploaded = null;   // { name, text, eol }
+let prevLines = { cfg: [], prof: [] };
+let outputs = { cfg: "", prof: "" };
+
+function radio(name) { return document.querySelector(`input[name="${name}"]:checked`).value; }
+function setRadio(name, v) { const r = document.querySelector(`input[name="${name}"][value="${v}"]`); if (r) r.checked = true; }
+
+function readState() {
+  const cpuVal = $("cpu").value, gpuVal = $("gpu").value;
+  let threads, cpuName, cpuLaptop = false;
+  if (cpuVal === "other") { threads = Math.max(2, parseInt($("threads").value, 10) || 8); cpuName = `Custom CPU (${threads} threads)`; }
+  else { const [g, i] = cpuVal.split("-").map(Number); const it = CPUS[g].items[i]; threads = it[1]; cpuName = it[0]; cpuLaptop = !!CPUS[g].laptop; }
+
+  let tier, vram, vendor, gpuName;
+  if (gpuVal === "other") { tier = +$("gpuTier").value; vram = 0; vendor = $("gpuVendor").value; gpuName = "Custom GPU"; }
+  else { const [g, i] = gpuVal.split("-").map(Number); const it = GPUS[g].items[i]; tier = it[1]; vram = it[2]; vendor = GPUS[g].v; gpuName = it[0]; }
+
+  return {
+    game: radio("game"), cpuVal, gpuVal, threads, cpuName, cpuLaptop, tier, vram, vendor, gpuName,
+    ram: +$("ram").value, hz: +$("hz").value, vrr: radio("vrr") === "1", laptop: radio("sys") === "laptop",
+    exFps: $("exFps").checked, exGraph: $("exGraph").checked, exLog: $("exLog").checked,
+  };
+}
+
+/* Shareable link: the setup is stored in the URL hash (never the uploaded profile) */
+function writeHash(s) {
+  const p = new URLSearchParams({ g: s.game, cpu: s.cpuVal, gpu: s.gpuVal, ram: s.ram, hz: s.hz, vrr: s.vrr ? 1 : 0, sys: s.laptop ? "laptop" : "desktop",
+    ex: [s.exFps && "fps", s.exGraph && "graph", s.exLog && "log"].filter(Boolean).join(",") });
+  if (s.cpuVal === "other") p.set("t", s.threads);
+  if (s.gpuVal === "other") { p.set("gt", s.tier); p.set("gv", s.vendor); }
+  history.replaceState(null, "", "#" + p.toString());
+  try { localStorage.setItem("bfcfg", p.toString()); } catch (e) {}
+}
+function readHash() {
+  let str = location.hash.slice(1);
+  if (!str) { try { str = localStorage.getItem("bfcfg") || ""; } catch (e) {} }
+  if (!str) return;
+  const p = new URLSearchParams(str);
+  const optExists = (sel, v) => [...sel.options].some(o => o.value === v);
+  if (p.get("g")) setRadio("game", p.get("g"));
+  if (p.get("cpu") && optExists($("cpu"), p.get("cpu"))) $("cpu").value = p.get("cpu");
+  if (p.get("gpu") && optExists($("gpu"), p.get("gpu"))) $("gpu").value = p.get("gpu");
+  if (p.get("ram") && optExists($("ram"), p.get("ram"))) $("ram").value = p.get("ram");
+  if (p.get("hz") && optExists($("hz"), p.get("hz"))) $("hz").value = p.get("hz");
+  if (p.get("vrr")) setRadio("vrr", p.get("vrr"));
+  if (p.get("sys")) setRadio("sys", p.get("sys"));
+  if (p.has("ex")) { const ex = p.get("ex").split(","); $("exFps").checked = ex.includes("fps"); $("exGraph").checked = ex.includes("graph"); $("exLog").checked = ex.includes("log"); }
+  if (p.get("t")) $("threads").value = p.get("t");
+  if (p.get("gt")) $("gpuTier").value = p.get("gt");
+  if (p.get("gv")) $("gpuVendor").value = p.get("gv");
+}
+
+/* ----------------------------------------------------------------------
+   Rendering
+   ---------------------------------------------------------------------- */
+function renderCode(preId, key, lines) {
+  const pre = $(preId);
+  pre.textContent = "";
+  const prev = new Set(prevLines[key]);
+  const first = prevLines[key].length === 0;
+  lines.forEach(line => {
+    const span = el("span", { className: "ln" });
+    const m = line.match(/^(\S+)(\s+)(.*)$/);
+    if (m) { span.appendChild(el("span", { className: "k" }, m[1])); span.appendChild(document.createTextNode(m[2])); span.appendChild(el("span", { className: "v" }, m[3])); }
+    else span.textContent = line;
+    if (!first && !prev.has(line)) span.classList.add("changed");
+    pre.appendChild(span);
+  });
+  prevLines[key] = lines.slice();
+}
+
+function fmtValue(key, v, game) {
+  const L = LABELS[key];
+  if (!L) return v;
+  const f = L[1];
+  if (typeof f === "function") return f(v);
+  if (f === "q") return ["Low", "Medium", "High", "Ultra"][+v] ?? v;
+  if (f === "onoff") return v === "0" ? "Off" : "On";
+  if (f === "af") return ["1x", "2x", "4x", "8x", "16x"][+v] ?? v;
+  if (f === "aa") return GAMES[game].aaPost[+v] ?? v;
+  if (f === "pct") return Math.round(parseFloat(v) * 100) + "%";
+  return v;
+}
+
+function update() {
+  const s = readState();
+  const G = GAMES[s.game];
+
+  // Show manual inputs for unlisted hardware
+  $("cpuManual").classList.toggle("on", s.cpuVal === "other");
+  $("gpuManual").classList.toggle("on", s.gpuVal === "other");
+
+  /* ---------- user.cfg ---------- */
+  const fc = frameCap(s.hz, s.vrr, s.laptop, s.tier, s.threads);
+  const ral = s.threads <= 4 ? 2 : 1;
+  const cfg = [
+    `PerfOverlay.DrawFps ${s.exFps ? 1 : 0}`,
+    `GameTime.MaxVariableFps ${fc.fps}`,
+    `RenderDevice.RenderAheadLimit ${ral}`,
+    `RenderDevice.TripleBufferingEnable 0`,
+    `RenderDevice.VSyncEnable 0`,
+    `WorldRender.MotionBlurEnable 0`,
+  ];
+  if (s.exGraph) cfg.push("PerfOverlay.DrawGraph 1");
+  if (s.exLog) cfg.push("PerfOverlay.FrameFileLogEnable 1");
+  renderCode("cfgCode", "cfg", cfg);
+  outputs.cfg = cfg.join("\r\n") + "\r\n";
+
+  /* ---------- PROFSAVE_profile ---------- */
+  const { settings, capped } = profileSettings(s.game, s.tier, s.threads, s.ram, s.vram);
+  const notes = [];
+  let changes = [];   // [key, old, new]
+  let profLines;
+
+  if (uploaded) {
+    const src = uploaded.text.split(/\r?\n/);
+    if (src.length && src[src.length - 1] === "") src.pop();
+    const seen = new Set();
+    const out = src.map(line => {
+      const m = line.match(/^(\S+)\s+(.*)$/);
+      if (m && settings[m[1]] !== undefined) {
+        seen.add(m[1]);
+        const old = m[2].trim();
+        if (old !== settings[m[1]]) changes.push([m[1], old, settings[m[1]]]);
+        return `${m[1]} ${settings[m[1]]}`;
+      }
+      return line;
+    });
+    Object.keys(settings).forEach(k => { if (!seen.has(k)) { out.push(`${k} ${settings[k]}`); changes.push([k, null, settings[k]]); } });
+    outputs.prof = out.join(uploaded.eol) + uploaded.eol;
+
+    // Show only the lines this tool sets; the download has the full file
+    const shown = out.filter(l => settings[l.split(/\s+/)[0]] !== undefined);
+    profLines = shown;
+    $("profNote").className = "panel-note";
+    $("profNote").textContent = `Showing the ${shown.length} lines this tool sets. The download is your full profile (${out.length} lines) with keybinds, sensitivity, FOV and audio kept. ${changes.length} values change.`;
+
+    // Sanity checks on the uploaded file
+    const t = uploaded.text;
+    const looksBF1 = /GstRender\.(Dx12Enabled|ChromaticAberration|FilmGrain)\s/.test(t);
+    if (s.game === "bf4" && looksBF1) notes.push(["warn", "The loaded profile looks like it's from Battlefield 1 or newer, not Battlefield 4. Check that you picked the right game and file."]);
+    if (s.game === "bf1" && !looksBF1) notes.push(["warn", "The loaded profile looks like it's from Battlefield 4, not Battlefield 1. Check that you picked the right game and file."]);
+    const fr = t.match(/^GstRender\.FullscreenRefreshRate\s+([\d.]+)/m);
+    if (fr && +fr[1] > 0 && +fr[1] < s.hz - 1) notes.push(["warn", `Your profile runs the game at ${Math.round(+fr[1])} Hz but you chose a ${s.hz} Hz display. Select ${s.hz} Hz in the game's Options > Video.`]);
+  } else {
+    profLines = Object.keys(settings).sort().map(k => `${k} ${settings[k]}`);
+    outputs.prof = profLines.join("\r\n") + "\r\n";
+    $("profNote").className = "panel-note warn";
+    $("profNote").textContent = "Graphics settings only. Replacing your profile with this file resets keybinds, sensitivity and audio to defaults. Load your current profile in step 6 to keep them.";
+  }
+  renderCode("profCode", "prof", profLines);
+
+  /* ---------- Summary strip ---------- */
+  const tierName = { 3: "High", 2: "Medium", 1: "Low" }[s.tier];
+  const sum = $("summary"); sum.textContent = "";
+  [["Graphics tier", tierName], ["FPS cap", fc.fps], ["Render queue", ral], ["Game", s.game === "bf4" ? "BF4" : "BF1"]].forEach(([k, v]) => {
+    const d = el("div"); d.appendChild(el("dt", {}, k)); d.appendChild(el("dd", {}, String(v))); sum.appendChild(d);
+  });
+
+  /* ---------- Notes ---------- */
+  if (s.ram < G.minRam) notes.push(["warn", `${G.name} needs at least ${G.minRam} GB of RAM. Expect stutter regardless of settings.`]);
+  if (capped.includes("ram")) notes.push(["info", s.game === "bf1"
+    ? `With ${s.ram} GB of RAM, texture quality is capped and GPU memory restriction stays on to avoid streaming stutter. ${G.name} recommends 16 GB.`
+    : `With ${s.ram} GB of RAM, texture and mesh quality are capped at Medium to avoid streaming stutter.`]);
+  if (capped.includes("cpu")) notes.push(["info", "With 4 threads or fewer, mesh and terrain quality are capped at Medium and the render queue is 2 frames to reduce CPU stutter."]);
+  if (s.cpuLaptop && !s.laptop) notes.push(["info", "You picked a laptop processor but PC type is Desktop. Switch to Laptop if this is a laptop: the FPS cap is set more conservatively for temperatures."]);
+  if (s.laptop && s.vendor === "nvidia") notes.push(["info", "On laptops, plug in the charger and make sure the game uses the NVIDIA GPU: NVIDIA Control Panel > Manage 3D settings > Program settings > " + G.exe + " > High-performance NVIDIA processor."]);
+  if (s.hz === 60 && !s.laptop && s.tier === 3) notes.push(["info", "If your monitor supports more than 60 Hz, check Windows Settings > Display > Advanced display. High refresh monitors often ship set to 60 Hz."]);
+  const ul = $("notes"); ul.textContent = "";
+  notes.forEach(([cls, text]) => ul.appendChild(el("li", { className: cls === "info" ? "info" : "" }, text)));
+
+  /* ---------- Why tab ---------- */
+  const why = $("why"); why.textContent = "";
+  why.appendChild(el("h3", {}, "user.cfg"));
+  const t1 = el("table");
+  t1.innerHTML = "<thead><tr><th>Command</th><th>Value</th><th>Why</th></tr></thead>";
+  const tb1 = el("tbody");
+  const cfgWhy = [
+    ["GameTime.MaxVariableFps", fc.fps, fc.why],
+    ["RenderDevice.RenderAheadLimit", ral, ral === 1 ? "Frames the CPU can queue ahead of the GPU. One frame gives the lowest input lag." : "Two frames: a one-frame queue makes CPUs with 4 threads or fewer stutter."],
+    ["RenderDevice.TripleBufferingEnable", 0, "Triple buffering adds a frame of latency."],
+    ["RenderDevice.VSyncEnable", 0, s.vrr ? "V-Sync goes in the driver together with G-Sync/FreeSync, not in the game." : "V-Sync adds input lag. The FPS cap keeps frame times even instead."],
+    ["WorldRender.MotionBlurEnable", 0, "Makes sure motion blur stays off."],
+    ["PerfOverlay.DrawFps", s.exFps ? 1 : 0, s.exFps ? "On-screen FPS counter, so you can check the cap works." : "FPS counter hidden."],
+  ];
+  if (s.exGraph) cfgWhy.push(["PerfOverlay.DrawGraph", 1, "Shows CPU and GPU frame times. If the CPU line is higher, you're CPU limited and lowering graphics won't help much."]);
+  if (s.exLog) cfgWhy.push(["PerfOverlay.FrameFileLogEnable", 1, "Writes frame times to a CSV file in Documents\\" + G.name + ". Turn it off when you're done benchmarking."]);
+  cfgWhy.forEach(([k, v, r]) => { const tr = el("tr"); tr.appendChild(el("td", {}, k)); tr.appendChild(el("td", { className: "val" }, String(v))); tr.appendChild(el("td", { className: "reason" }, r)); tb1.appendChild(tr); });
+  t1.appendChild(tb1); why.appendChild(t1);
+
+  why.appendChild(el("h3", {}, "PROFSAVE_profile"));
+  const t2 = el("table");
+  t2.innerHTML = uploaded
+    ? "<thead><tr><th>Setting</th><th>Was</th><th>Now</th><th>Why</th></tr></thead>"
+    : "<thead><tr><th>Setting</th><th>Value</th><th>Why</th></tr></thead>";
+  const tb2 = el("tbody");
+  const changedMap = Object.fromEntries(changes.map(([k, o]) => [k, o]));
+  Object.keys(settings).sort((a, b) => (LABELS[a]?.[0] || a).localeCompare(LABELS[b]?.[0] || b)).forEach(k => {
+    if (k === "GstRender.MotionBlur") return;  // shown under Motion blur
+    const tr = el("tr");
+    tr.appendChild(el("td", {}, LABELS[k]?.[0] || k));
+    if (uploaded) {
+      const old = changedMap[k];
+      tr.appendChild(el("td", { className: "from" }, k in changedMap ? (old === null ? "missing" : fmtValue(k, old, s.game)) : "same"));
+    }
+    tr.appendChild(el("td", { className: "val" }, fmtValue(k, settings[k], s.game)));
+    tr.appendChild(el("td", { className: "reason" }, REASONS[k] || ""));
+    tb2.appendChild(tr);
+  });
+  t2.appendChild(tb2); why.appendChild(t2);
+  if (s.game === "bf1") why.appendChild(el("p", { className: "reason", style: "color:var(--code-dim);font-size:14px;margin:12px 0 0" },
+    "BF1's antialiasing values aren't officially documented. After applying, check Options > Video shows the expected setting."));
+  why.appendChild(el("p", { style: "color:var(--code-dim);font-size:14px;margin:12px 0 0" },
+    "Not changed: resolution, refresh rate, FOV, brightness, HUD, keybinds, mouse and controller settings, audio."));
+
+  /* ---------- Install paths ---------- */
+  $("exeName").textContent = G.exe;
+  const gp = $("gamePaths"); gp.textContent = "";
+  G.folders.forEach(f => gp.appendChild(el("div", { className: "path" }, f)));
+  $("profPath").textContent = G.profile;
+  $("dropHint").textContent = `Keeps your keybinds, sensitivity, FOV and audio. Find it in ${G.profile.replace(/\\PROFSAVE_profile$/, "")}.`;
+
+  /* ---------- Driver settings ---------- */
+  const d = $("driver"); d.textContent = "";
+  const items = [];
+  if (s.vendor === "nvidia") {
+    d.appendChild(el("p", {}, `NVIDIA Control Panel > Manage 3D settings > Program settings > ${G.exe}:`));
+    if (s.vrr) items.push("G-Sync: on (Set up G-SYNC page)", "Vertical sync: On. With G-Sync this doesn't add lag while you stay under the FPS cap. Keep V-Sync off in the game.");
+    else items.push("Vertical sync: Off");
+    items.push("Low Latency Mode: On", "Power management mode: Prefer maximum performance");
+    if (s.laptop) items.push("Preferred graphics processor: High-performance NVIDIA processor");
+  } else if (s.vendor === "amd") {
+    d.appendChild(el("p", {}, `AMD Software: Adrenalin Edition > Gaming > ${G.name}:`));
+    if (s.vrr) items.push("AMD FreeSync: on", "Wait for Vertical Refresh: Always on. Keep V-Sync off in the game.");
+    else items.push("Wait for Vertical Refresh: Off, unless application specifies");
+    items.push("Radeon Anti-Lag: on");
+  } else {
+    d.appendChild(el("p", {}, "Intel Graphics Software > Gaming:"));
+    if (s.vrr) items.push("Adaptive Sync: on", "Vertical sync: driver controlled on. Keep V-Sync off in the game.");
+    else items.push("Vertical sync: application controlled (the game's V-Sync is off)");
+    items.push("Low Latency: on, if available for your GPU");
+  }
+  const list = el("ul"); items.forEach(i => list.appendChild(el("li", {}, i))); d.appendChild(list);
+  d.appendChild(el("p", { className: "hint" }, "Windows: Settings > System > Display > Graphics: set the game to High performance."));
+
+  writeHash(s);
+}
+
+/* ----------------------------------------------------------------------
+   Upload, copy, download
+   ---------------------------------------------------------------------- */
+function loadFile(file) {
+  if (!file) return;
+  if (file.size > 2 * 1024 * 1024) { alert("That file is too large to be a PROFSAVE_profile."); return; }
+  const r = new FileReader();
+  r.onload = () => {
+    const text = String(r.result);
+    if (!/^Gst(Render|Input|Audio|Game)\./m.test(text)) {
+      alert("This file doesn't look like a PROFSAVE_profile. Choose the file named PROFSAVE_profile (no extension) from the game's settings folder.");
+      return;
+    }
+    uploaded = { name: file.name, text, eol: text.includes("\r\n") ? "\r\n" : "\n" };
+    $("fileName").textContent = `Loaded: ${file.name}`;
+    $("fileState").classList.add("on");
+    $("drop").style.display = "none";
+    prevLines.prof = [];
+    update();
+  };
+  r.readAsText(file);
+}
+
+function download(kind) {
+  const name = kind === "cfg" ? "user.cfg" : "PROFSAVE_profile";
+  const blob = new Blob([outputs[kind]], { type: "application/octet-stream" });
+  const a = el("a", { href: URL.createObjectURL(blob), download: name });
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
+
+async function copyText(text, toastEl, msg) {
+  try { await navigator.clipboard.writeText(text); }
+  catch (e) {
+    const ta = el("textarea", { value: text }); ta.style.position = "fixed"; ta.style.opacity = "0";
+    document.body.appendChild(ta); ta.select(); try { document.execCommand("copy"); } catch (_) {} ta.remove();
+  }
+  toastEl.textContent = msg;
+  setTimeout(() => { toastEl.textContent = ""; }, 2200);
+}
+
+/* Tabs with arrow-key support */
+function initTabs() {
+  const tabs = [...document.querySelectorAll('[role="tab"]')];
+  const select = (t) => {
+    tabs.forEach(x => { const on = x === t; x.setAttribute("aria-selected", on); x.tabIndex = on ? 0 : -1; $(x.getAttribute("aria-controls")).hidden = !on; });
+  };
+  tabs.forEach((t, i) => {
+    t.addEventListener("click", () => select(t));
+    t.addEventListener("keydown", (e) => {
+      if (e.key !== "ArrowRight" && e.key !== "ArrowLeft") return;
+      const n = tabs[(i + (e.key === "ArrowRight" ? 1 : tabs.length - 1)) % tabs.length];
+      select(n); n.focus();
+    });
+  });
+}
+
+/* Theme toggle (remembered per browser) */
+function initTheme() {
+  let saved = null; try { saved = localStorage.getItem("bfcfg-theme"); } catch (e) {}
+  if (saved) document.documentElement.dataset.theme = saved;
+  $("theme").addEventListener("click", () => {
+    const cur = document.documentElement.dataset.theme || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+    const next = cur === "dark" ? "light" : "dark";
+    document.documentElement.dataset.theme = next;
+    try { localStorage.setItem("bfcfg-theme", next); } catch (e) {}
+  });
+}
+
+/* ----------------------------------------------------------------------
+   Init
+   ---------------------------------------------------------------------- */
+fillCpu(); fillGpu();
+fillSimple("ram", RAM_OPTIONS, "GB", "16");
+fillSimple("hz", HZ_OPTIONS, "Hz", "144");
+readHash();
+initTabs(); initTheme();
+
+$("repoLink").href = REPO_URL;
+$("scriptLink").href = SCRIPT_URL;
+
+// Picking a laptop CPU or GPU switches PC type to Laptop (still editable)
+$("cpu").addEventListener("change", () => {
+  const v = $("cpu").value; if (v === "other") return;
+  if (CPUS[+v.split("-")[0]].laptop) setRadio("sys", "laptop");
+});
+$("gpu").addEventListener("change", () => {
+  const v = $("gpu").value; if (v === "other") return;
+  if (GPUS[+v.split("-")[0]].laptop) setRadio("sys", "laptop");
+});
+
+$("f").addEventListener("input", update);
+$("f").addEventListener("change", update);
+
+$("file").addEventListener("change", (e) => loadFile(e.target.files[0]));
+const drop = $("drop");
+["dragenter", "dragover"].forEach(ev => drop.addEventListener(ev, (e) => { e.preventDefault(); drop.classList.add("over"); }));
+["dragleave", "drop"].forEach(ev => drop.addEventListener(ev, (e) => { e.preventDefault(); drop.classList.remove("over"); }));
+drop.addEventListener("drop", (e) => loadFile(e.dataTransfer.files[0]));
+$("clearFile").addEventListener("click", () => {
+  uploaded = null; $("file").value = ""; $("fileState").classList.remove("on"); $("drop").style.display = "";
+  prevLines.prof = []; update();
+});
+
+document.querySelectorAll("[data-dl]").forEach(b => b.addEventListener("click", () => download(b.dataset.dl)));
+document.querySelectorAll("[data-copy]").forEach(b => b.addEventListener("click", () =>
+  copyText(outputs[b.dataset.copy], b.parentElement.querySelector(".toast"), "Copied")));
+$("share").addEventListener("click", () => copyText(location.href, $("shareToast"), "Link copied"));
+
+update();
+</script>
+</body>
+</html>

@@ -45,14 +45,14 @@ There are two ways to use it. Both are free and open source.
 
 **🌐 [j0p3s.github.io/Battlefield-user-profile-tweaker](https://j0p3s.github.io/Battlefield-user-profile-tweaker/)**
 
-The **Battlefield Config Builder** builds the same kind of files as the script, but you describe your PC instead of the script detecting it. It runs entirely in your browser: nothing is uploaded, and there's nothing to install.
+The **Battlefield Config Builder** uses the same rules as the script and builds the same files, but you describe your PC instead of the script detecting it. It runs entirely in your browser: nothing is uploaded, and there's nothing to install.
 
 **How to use it:**
 
 1. **Pick the game:** Battlefield 4, 1, V or 6.
 2. **Pick your processor and graphics card** from the lists. If yours isn't listed, choose *Not listed* and enter the cores and threads, or the GPU brand and performance level. The cores and threads are shown in Task Manager > Performance > CPU.
 3. **Pick your RAM, refresh rate and PC type** (desktop or laptop), and say whether G-Sync / FreeSync is **enabled in your driver**.
-4. **Load your current `PROFSAVE_profile` (recommended).** This keeps your keybinds, sensitivity, FOV and audio. The file is read in your browser and never leaves your PC. **For Battlefield 6 this is required**, because a profile built from scratch would reset your HUD, keybinds and audio.
+4. **Load your current `PROFSAVE_profile` (recommended).** This keeps your keybinds, sensitivity, FOV and audio. The file is read in your browser and never leaves your PC. **For Battlefield V and Battlefield 6 this is required**, because a profile built from scratch would reset your HUD, keybinds and audio.
 5. **Download or copy** the `user.cfg` and `PROFSAVE_profile`.
 
 The **Why these values** tab explains every setting. If you loaded your profile, it shows each old value next to the new one.
@@ -415,8 +415,8 @@ Apply the files, then raise individual options in-game. Your keybinds and other 
 **Why is my FPS capped at 138 / 144?**
 See [FPS cap](#fps-cap). For BF4 / BF1 / BF V, edit `GameTime.MaxVariableFps` in `user.cfg`; `0` means no cap. For BF6, change the frame rate limit in the game's options.
 
-**Why does BF6 need my profile?**
-A BF6 profile holds almost 1,000 settings. One built from scratch would reset your HUD, keybinds and audio, so both the script and the web page only edit your existing file.
+**Why do BF V and BF6 need my profile?**
+Their profiles hold many settings besides graphics: a BF6 profile has almost 1,000. One built from scratch would reset your HUD, keybinds and audio, so both the script and the web page only edit your existing file.
 
 **I have multiple monitors.**
 The script asks for the refresh rate of the monitor you play on. On the web page, choose that monitor's refresh rate.
@@ -437,7 +437,7 @@ The script asks for the refresh rate of the monitor you play on. On the web page
 | Windows shows 60 Hz on a high refresh monitor | Settings > System > Display > Advanced display > pick the highest refresh rate, then run the script again. |
 | "Permission declined" when copying `user.cfg` | Accept the Windows admin prompt, or copy the file by hand from the `<game>_Optimized` folder. |
 | Settings reverted after playing | You probably changed video options in-game. Run the script again. |
-| Web page: download button for BF6 is greyed out | Load your current BF6 `PROFSAVE_profile` in step 6 first. |
+| Web page: download button for BF V or BF6 is greyed out | Load your current `PROFSAVE_profile` for that game in step 6 first. |
 
 ---
 

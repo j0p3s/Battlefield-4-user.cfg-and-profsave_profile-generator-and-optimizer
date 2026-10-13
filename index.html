@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Battlefield Config Builder</title>
-<meta name="description" content="Pick your CPU, GPU, RAM and display and get a tuned user.cfg and PROFSAVE_profile for Battlefield 4 and Battlefield 1.">
+<meta name="description" content="Pick your CPU, GPU, RAM and display and get a tuned user.cfg and PROFSAVE_profile for Battlefield 4, Battlefield 1, Battlefield V and Battlefield 6.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -139,7 +139,8 @@
   .seg label:first-child span { border-left: 0; }
   .seg input:checked + span { background: var(--ink); color: var(--field); }
   .seg input:focus-visible + span { outline: 2px solid var(--steel); outline-offset: -3px; }
-  .seg.game span { font-size: 21px; padding: 12px 8px; }
+  .seg.game span { font: 700 30px/1 var(--font-cond); padding: 9px 4px 10px; }
+  .seg.game small { display: block; font: 500 14px/1.2 var(--font-cond); margin-bottom: 3px; opacity: .8; }
 
   .checks { display: grid; gap: 8px; }
   .checks label { display: flex; gap: 10px; align-items: flex-start; font-size: 16px; }
@@ -298,7 +299,7 @@
   <header class="top">
     <h1>Tuned Battlefield configs for your PC</h1>
     <p>Pick your hardware and get a <code>user.cfg</code> and <code>PROFSAVE_profile</code> built for it, with every setting explained. Everything runs in your browser. Nothing is uploaded.</p>
-    <p class="script-link">On Windows and want automatic detection? <a id="scriptLink" href="#">Download the optimizer script</a>.</p>
+    <p class="script-link" id="scriptLine">On Windows and want automatic detection? <a id="scriptLink" href="#">Download the Battlefield 4 optimizer script</a>.</p>
   </header>
 
   <div class="grid">
@@ -310,8 +311,10 @@
         <div class="step-body">
           <legend>Game</legend>
           <div class="seg game" role="radiogroup">
-            <label><input type="radio" name="game" value="bf4" checked><span>Battlefield 4</span></label>
-            <label><input type="radio" name="game" value="bf1"><span>Battlefield 1</span></label>
+            <label><input type="radio" name="game" value="bf4" checked><span><small>Battlefield</small>4</span></label>
+            <label><input type="radio" name="game" value="bf1"><span><small>Battlefield</small>1</span></label>
+            <label><input type="radio" name="game" value="bfv"><span><small>Battlefield</small>V</span></label>
+            <label><input type="radio" name="game" value="bf6"><span><small>Battlefield</small>6</span></label>
           </div>
         </div>
       </fieldset>
@@ -323,11 +326,15 @@
           <select id="cpu" name="cpu"></select>
           <div class="manual row2" id="cpuManual">
             <div>
-              <label class="field-label" for="threads">Threads</label>
-              <input type="number" id="threads" min="2" max="128" step="1" value="8">
+              <label class="field-label" for="cores">Cores</label>
+              <input type="number" id="cores" min="1" max="128" step="1" value="6">
             </div>
-            <p class="hint" style="align-self:end;margin:0 0 6px">Task Manager &gt; Performance &gt; CPU shows "Logical processors".</p>
+            <div>
+              <label class="field-label" for="threads">Threads</label>
+              <input type="number" id="threads" min="2" max="256" step="1" value="12">
+            </div>
           </div>
+          <p class="hint" id="cpuManualHint" style="display:none">Task Manager &gt; Performance &gt; CPU shows "Cores" and "Logical processors" (threads).</p>
         </div>
       </div>
 
@@ -397,7 +404,7 @@
       <fieldset class="step">
         <span class="step-n" aria-hidden="true">6</span>
         <div class="step-body">
-          <legend>Your current profile <span style="font-weight:500;color:var(--ink-2)">(recommended)</span></legend>
+          <legend>Your current profile <span id="profNeed" style="font-weight:500;color:var(--ink-2)">(recommended)</span></legend>
           <label class="drop" id="drop" for="file">
             <strong>Load your PROFSAVE_profile</strong>
             <span class="hint" id="dropHint">Keeps your keybinds, sensitivity, FOV and audio. Find it in Documents\Battlefield 4\settings.</span>
@@ -410,7 +417,7 @@
         </div>
       </fieldset>
 
-      <fieldset class="step">
+      <fieldset class="step" id="extrasStep">
         <span class="step-n" aria-hidden="true">7</span>
         <div class="step-body">
           <legend>On-screen extras</legend>
@@ -419,6 +426,7 @@
             <label><input type="checkbox" id="exGraph"> CPU and GPU frame time graph, to see what limits your FPS</label>
             <label><input type="checkbox" id="exLog"> Save frame times to a file, for before and after benchmarks</label>
           </div>
+          <p class="hint" id="extrasNote" style="display:none">Battlefield 6 has its own performance overlay: Options &gt; Display &gt; Performance overlay.</p>
         </div>
       </fieldset>
     </form>
@@ -433,7 +441,7 @@
       </div>
       <div class="panel">
         <div role="tabpanel" id="p-cfg" aria-labelledby="t-cfg">
-          <p class="panel-note">Goes in the game's install folder, next to the game's .exe.</p>
+          <p class="panel-note" id="cfgNote">Goes in the game's install folder, next to the game's .exe.</p>
           <pre class="code" id="cfgCode" tabindex="0"></pre>
           <div class="actions">
             <button type="button" class="primary" data-dl="cfg">Download user.cfg</button>
@@ -474,12 +482,14 @@
           <li><strong>EA app:</strong> right-click the game &gt; View properties &gt; Browse.</li>
           <li><strong>Steam:</strong> right-click the game &gt; Manage &gt; Browse local files.</li>
           <li>Make sure Windows doesn't save it as <code>user.cfg.txt</code>.</li>
+          <li id="cfgOptional" hidden>It's optional. If the game runs worse with it, delete it.</li>
         </ul>
       </div>
       <div>
         <h3><code>PROFSAVE_profile</code></h3>
         <p style="margin:0">Your Documents folder:</p>
         <div class="path" id="profPath"></div>
+        <p class="hint" id="profPathHint" hidden>If the settings folder has a <code>steam</code>, <code>ea</code> or <code>epic</code> subfolder, use the PROFSAVE_profile inside the one for your launcher.</p>
         <ul>
           <li>Close the game first. It rewrites this file when it exits.</li>
           <li>Back up the old file before replacing it.</li>
@@ -505,45 +515,50 @@
 /* ======================================================================
    Battlefield Config Builder
    Generates user.cfg and PROFSAVE_profile from hardware the user picks.
-   Same logic as the Windows script in the repository.
+   Supports Battlefield 4, Battlefield 1, Battlefield V and Battlefield 6.
+   BF4 and BF6 follow the same logic as the Windows optimizer scripts.
    ====================================================================== */
 
 // Repository links (change these if you fork the project)
-const REPO_URL   = "https://github.com/j0p3s/Battlefield-4-user.cfg-and-profsave_profile-generator-and-optimizer";
-const SCRIPT_URL = REPO_URL + "/releases/latest";
+const REPO_URL = "https://github.com/j0p3s/Battlefield-4-user.cfg-and-profsave_profile-generator-and-optimizer";
+// Windows scripts per game (only games with a published script get a link)
+const SCRIPT_URLS = { bf4: REPO_URL + "/releases/latest" };
 
 /* ----------------------------------------------------------------------
    Hardware lists
-   CPU entries: [name, threads]
-   GPU entries: [name, tier, VRAM in GB]   tier: 3 = High, 2 = Medium, 1 = Low
+   CPU entries: [name, cores, threads]
+     Cores is the total Windows reports (P-cores + E-cores on hybrid Intel).
+   GPU entries: [name, tier, VRAM in GB]
+     Tier is for BF4 / BF1 / BF V: 3 = High, 2 = Medium, 1 = Low.
+     BF6 is much heavier and computes its own tier from the name (bf6Tier).
    ---------------------------------------------------------------------- */
 const CPUS = [
-  { g: "Intel Core Ultra (desktop)", items: [["Core Ultra 9 285K",24],["Core Ultra 7 265K",20],["Core Ultra 5 245K",14]] },
-  { g: "Intel 14th gen", items: [["Core i9-14900K",32],["Core i7-14700K",28],["Core i5-14600K",20],["Core i5-14400F",16],["Core i3-14100F",8]] },
-  { g: "Intel 13th gen", items: [["Core i9-13900K",32],["Core i7-13700K",24],["Core i5-13600K",20],["Core i5-13400F",16],["Core i3-13100F",8]] },
-  { g: "Intel 12th gen", items: [["Core i9-12900K",24],["Core i7-12700K",20],["Core i5-12600K",16],["Core i5-12400F",12],["Core i3-12100F",8]] },
-  { g: "Intel 11th gen", items: [["Core i9-11900K",16],["Core i7-11700K",16],["Core i5-11600K",12],["Core i5-11400F",12]] },
-  { g: "Intel 10th gen", items: [["Core i9-10900K",20],["Core i7-10700K",16],["Core i5-10600K",12],["Core i5-10400F",12],["Core i3-10100F",8]] },
-  { g: "Intel 9th gen", items: [["Core i9-9900K",16],["Core i7-9700K",8],["Core i5-9600K",6],["Core i5-9400F",6],["Core i3-9100F",4]] },
-  { g: "Intel 8th gen", items: [["Core i7-8700K",12],["Core i7-8700",12],["Core i5-8600K",6],["Core i5-8400",6],["Core i3-8100",4]] },
-  { g: "Intel 7th and 6th gen", items: [["Core i7-7700K",8],["Core i5-7600K",4],["Core i5-7500",4],["Core i3-7100",4],["Core i7-6700K",8],["Core i5-6600K",4],["Core i5-6500",4]] },
-  { g: "Intel 4th gen and older", items: [["Core i7-4790K",8],["Core i7-4770K",8],["Core i5-4690K",4],["Core i5-4460",4],["Core i7-3770K",8],["Core i5-3570K",4],["Core i7-2600K",8],["Core i5-2500K",4]] },
-  { g: "Intel laptop", laptop: true, items: [["Core i9-13980HX",32],["Core i7-13700H",20],["Core i7-12700H",20],["Core i5-12500H",16],["Core i7-11800H",16],["Core i5-11400H",12],["Core i7-10750H",12],["Core i5-10300H",8],["Core i7-9750H",12],["Core i7-8750H",12],["Core i7-1165G7",8],["Core i5-1135G7",8]] },
-  { g: "AMD Ryzen 9000", items: [["Ryzen 9 9950X3D",32],["Ryzen 9 9950X",32],["Ryzen 9 9900X",24],["Ryzen 7 9800X3D",16],["Ryzen 7 9700X",16],["Ryzen 5 9600X",12]] },
-  { g: "AMD Ryzen 7000", items: [["Ryzen 9 7950X3D",32],["Ryzen 9 7950X",32],["Ryzen 9 7900X",24],["Ryzen 7 7800X3D",16],["Ryzen 7 7700X",16],["Ryzen 5 7600X",12],["Ryzen 5 7600",12]] },
-  { g: "AMD Ryzen 5000", items: [["Ryzen 9 5950X",32],["Ryzen 9 5900X",24],["Ryzen 7 5800X3D",16],["Ryzen 7 5800X",16],["Ryzen 7 5700X",16],["Ryzen 7 5700G",16],["Ryzen 5 5600X",12],["Ryzen 5 5600",12],["Ryzen 5 5600G",12],["Ryzen 5 5500",12]] },
-  { g: "AMD Ryzen 3000", items: [["Ryzen 9 3950X",32],["Ryzen 9 3900X",24],["Ryzen 7 3700X",16],["Ryzen 5 3600",12],["Ryzen 3 3300X",8],["Ryzen 3 3100",8],["Ryzen 5 3400G",8],["Ryzen 3 3200G",4]] },
-  { g: "AMD Ryzen 2000 and 1000", items: [["Ryzen 7 2700X",16],["Ryzen 5 2600",12],["Ryzen 5 2400G",8],["Ryzen 7 1700",16],["Ryzen 5 1600",12],["Ryzen 5 1400",8],["Ryzen 3 1200",4]] },
-  { g: "AMD laptop", laptop: true, items: [["Ryzen 9 8945HS",16],["Ryzen 7 7840HS",16],["Ryzen 7 6800H",16],["Ryzen 7 5800H",16],["Ryzen 5 5600H",12],["Ryzen 7 4800H",16],["Ryzen 5 4600H",12],["Ryzen 5 7530U",12],["Ryzen 5 5500U",12]] },
-  { g: "AMD FX", items: [["FX-8350",8],["FX-6300",6],["FX-4300",4]] },
+  { g: "Intel Core Ultra (desktop)", items: [["Core Ultra 9 285K",24,24],["Core Ultra 7 265K",20,20],["Core Ultra 5 245K",14,14]] },
+  { g: "Intel 14th gen", items: [["Core i9-14900K",24,32],["Core i7-14700K",20,28],["Core i5-14600K",14,20],["Core i5-14400F",10,16],["Core i3-14100F",4,8]] },
+  { g: "Intel 13th gen", items: [["Core i9-13900K",24,32],["Core i7-13700K",16,24],["Core i5-13600K",14,20],["Core i5-13400F",10,16],["Core i3-13100F",4,8]] },
+  { g: "Intel 12th gen", items: [["Core i9-12900K",16,24],["Core i7-12700K",12,20],["Core i5-12600K",10,16],["Core i5-12400F",6,12],["Core i3-12100F",4,8]] },
+  { g: "Intel 11th gen", items: [["Core i9-11900K",8,16],["Core i7-11700K",8,16],["Core i5-11600K",6,12],["Core i5-11400F",6,12]] },
+  { g: "Intel 10th gen", items: [["Core i9-10900K",10,20],["Core i7-10700K",8,16],["Core i5-10600K",6,12],["Core i5-10400F",6,12],["Core i3-10100F",4,8]] },
+  { g: "Intel 9th gen", items: [["Core i9-9900K",8,16],["Core i7-9700K",8,8],["Core i5-9600K",6,6],["Core i5-9400F",6,6],["Core i3-9100F",4,4]] },
+  { g: "Intel 8th gen", items: [["Core i7-8700K",6,12],["Core i7-8700",6,12],["Core i5-8600K",6,6],["Core i5-8400",6,6],["Core i3-8100",4,4]] },
+  { g: "Intel 7th and 6th gen", items: [["Core i7-7700K",4,8],["Core i5-7600K",4,4],["Core i5-7500",4,4],["Core i3-7100",2,4],["Core i7-6700K",4,8],["Core i5-6600K",4,4],["Core i5-6500",4,4]] },
+  { g: "Intel 4th gen and older", items: [["Core i7-4790K",4,8],["Core i7-4770K",4,8],["Core i5-4690K",4,4],["Core i5-4460",4,4],["Core i7-3770K",4,8],["Core i5-3570K",4,4],["Core i7-2600K",4,8],["Core i5-2500K",4,4]] },
+  { g: "Intel laptop", laptop: true, items: [["Core i9-13980HX",24,32],["Core i7-13700H",14,20],["Core i7-12700H",14,20],["Core i5-12500H",12,16],["Core i7-11800H",8,16],["Core i5-11400H",6,12],["Core i7-10750H",6,12],["Core i5-10300H",4,8],["Core i7-9750H",6,12],["Core i7-8750H",6,12],["Core i7-1165G7",4,8],["Core i5-1135G7",4,8]] },
+  { g: "AMD Ryzen 9000", items: [["Ryzen 9 9950X3D",16,32],["Ryzen 9 9950X",16,32],["Ryzen 9 9900X",12,24],["Ryzen 7 9800X3D",8,16],["Ryzen 7 9700X",8,16],["Ryzen 5 9600X",6,12]] },
+  { g: "AMD Ryzen 7000", items: [["Ryzen 9 7950X3D",16,32],["Ryzen 9 7950X",16,32],["Ryzen 9 7900X",12,24],["Ryzen 7 7800X3D",8,16],["Ryzen 7 7700X",8,16],["Ryzen 5 7600X",6,12],["Ryzen 5 7600",6,12]] },
+  { g: "AMD Ryzen 5000", items: [["Ryzen 9 5950X",16,32],["Ryzen 9 5900X",12,24],["Ryzen 7 5800X3D",8,16],["Ryzen 7 5800X",8,16],["Ryzen 7 5700X",8,16],["Ryzen 7 5700G",8,16],["Ryzen 5 5600X",6,12],["Ryzen 5 5600",6,12],["Ryzen 5 5600G",6,12],["Ryzen 5 5500",6,12]] },
+  { g: "AMD Ryzen 3000", items: [["Ryzen 9 3950X",16,32],["Ryzen 9 3900X",12,24],["Ryzen 7 3700X",8,16],["Ryzen 5 3600",6,12],["Ryzen 3 3300X",4,8],["Ryzen 3 3100",4,8],["Ryzen 5 3400G",4,8],["Ryzen 3 3200G",4,4]] },
+  { g: "AMD Ryzen 2000 and 1000", items: [["Ryzen 7 2700X",8,16],["Ryzen 5 2600",6,12],["Ryzen 5 2400G",4,8],["Ryzen 7 1700",8,16],["Ryzen 5 1600",6,12],["Ryzen 5 1400",4,8],["Ryzen 3 1200",4,4]] },
+  { g: "AMD laptop", laptop: true, items: [["Ryzen AI Max+ 395",16,32],["Ryzen 9 8945HS",8,16],["Ryzen 7 7840HS",8,16],["Ryzen 7 6800H",8,16],["Ryzen 7 5800H",8,16],["Ryzen 5 5600H",6,12],["Ryzen 7 4800H",8,16],["Ryzen 5 4600H",6,12],["Ryzen 5 7530U",6,12],["Ryzen 5 5500U",6,12]] },
+  { g: "AMD FX", items: [["FX-8350",4,8],["FX-6300",3,6],["FX-4300",2,4]] },
 ];
 
 const GPUS = [
-  { g: "NVIDIA RTX 50", v: "nvidia", items: [["RTX 5090",3,32],["RTX 5080",3,16],["RTX 5070 Ti",3,16],["RTX 5070",3,12],["RTX 5060 Ti",3,16],["RTX 5060",3,8]] },
+  { g: "NVIDIA RTX 50", v: "nvidia", items: [["RTX 5090",3,32],["RTX 5080",3,16],["RTX 5070 Ti",3,16],["RTX 5070",3,12],["RTX 5060 Ti",3,16],["RTX 5060",3,8],["RTX 5050",3,8]] },
   { g: "NVIDIA RTX 40", v: "nvidia", items: [["RTX 4090",3,24],["RTX 4080 SUPER",3,16],["RTX 4080",3,16],["RTX 4070 Ti SUPER",3,16],["RTX 4070 Ti",3,12],["RTX 4070 SUPER",3,12],["RTX 4070",3,12],["RTX 4060 Ti",3,8],["RTX 4060",3,8]] },
   { g: "NVIDIA RTX 30", v: "nvidia", items: [["RTX 3090 Ti",3,24],["RTX 3090",3,24],["RTX 3080 Ti",3,12],["RTX 3080",3,10],["RTX 3070 Ti",3,8],["RTX 3070",3,8],["RTX 3060 Ti",3,8],["RTX 3060",3,12],["RTX 3050",2,8]] },
   { g: "NVIDIA RTX 20", v: "nvidia", items: [["RTX 2080 Ti",3,11],["RTX 2080 SUPER",3,8],["RTX 2080",3,8],["RTX 2070 SUPER",3,8],["RTX 2070",3,8],["RTX 2060 SUPER",3,8],["RTX 2060",3,6]] },
-  { g: "NVIDIA RTX laptop", v: "nvidia", laptop: true, items: [["RTX 4090 Laptop",3,16],["RTX 4080 Laptop",3,12],["RTX 4070 Laptop",3,8],["RTX 4060 Laptop",3,8],["RTX 4050 Laptop",3,6],["RTX 3080 Ti Laptop",3,16],["RTX 3080 Laptop",3,16],["RTX 3070 Laptop",3,8],["RTX 3060 Laptop",3,6],["RTX 3050 Ti Laptop",2,4],["RTX 3050 Laptop",2,4],["RTX 2080 Laptop",3,8],["RTX 2070 Laptop",3,8],["RTX 2060 Laptop",3,6],["RTX 2050 Laptop",2,4]] },
+  { g: "NVIDIA RTX laptop", v: "nvidia", laptop: true, items: [["RTX 5090 Laptop",3,24],["RTX 5080 Laptop",3,16],["RTX 5070 Ti Laptop",3,12],["RTX 5070 Laptop",3,8],["RTX 5060 Laptop",3,8],["RTX 4090 Laptop",3,16],["RTX 4080 Laptop",3,12],["RTX 4070 Laptop",3,8],["RTX 4060 Laptop",3,8],["RTX 4050 Laptop",3,6],["RTX 3080 Ti Laptop",3,16],["RTX 3080 Laptop",3,16],["RTX 3070 Laptop",3,8],["RTX 3060 Laptop",3,6],["RTX 3050 Ti Laptop",2,4],["RTX 3050 Laptop",2,4],["RTX 2080 Laptop",3,8],["RTX 2070 Laptop",3,8],["RTX 2060 Laptop",3,6],["RTX 2050 Laptop",2,4]] },
   { g: "NVIDIA GTX 16", v: "nvidia", items: [["GTX 1660 SUPER",3,6],["GTX 1660 Ti",3,6],["GTX 1660",2,6],["GTX 1650 SUPER",2,4],["GTX 1650",2,4],["GTX 1630",1,4]] },
   { g: "NVIDIA GTX 10", v: "nvidia", items: [["GTX 1080 Ti",3,11],["GTX 1080",3,8],["GTX 1070 Ti",3,8],["GTX 1070",3,8],["GTX 1060 6GB",2,6],["GTX 1060 3GB",2,3],["GTX 1050 Ti",1,4],["GTX 1050",1,2],["GT 1030",1,2]] },
   { g: "NVIDIA GTX 900 and older", v: "nvidia", items: [["GTX 980 Ti",3,6],["GTX 980",2,4],["GTX 970",2,4],["GTX 960",1,2],["GTX 950",1,2],["GTX 780 Ti",1,3],["GTX 770",1,2],["GTX 750 Ti",1,2]] },
@@ -554,7 +569,7 @@ const GPUS = [
   { g: "AMD laptop", v: "amd", laptop: true, items: [["RX 7600S",3,8],["RX 6800M",3,12],["RX 6700M",3,10],["RX 6600M",3,8],["RX 6500M",2,4]] },
   { g: "AMD RX 5000 and Vega", v: "amd", items: [["RX 5700 XT",3,8],["RX 5700",3,8],["RX 5600 XT",2,6],["RX 5500 XT",2,8],["Radeon VII",3,16],["RX Vega 64",3,8],["RX Vega 56",3,8]] },
   { g: "AMD RX 500 / 400 and older", v: "amd", items: [["RX 590",2,8],["RX 580",2,8],["RX 570",2,4],["RX 480",2,8],["RX 470",2,4],["RX 560",1,4],["RX 550",1,2],["RX 460",1,4],["R9 390",2,8],["R9 380",1,4],["R7 370",1,2]] },
-  { g: "AMD integrated", v: "amd", items: [["Radeon 890M / 880M",1,2],["Radeon 780M",1,2],["Radeon 680M",1,2],["Radeon Vega 8 / 11",1,2],["Radeon Graphics (Ryzen)",1,2]] },
+  { g: "AMD integrated", v: "amd", items: [["Radeon 8060S (Ryzen AI Max)",3,16],["Radeon 890M / 880M",1,2],["Radeon 780M",1,2],["Radeon 680M",1,2],["Radeon Vega 8 / 11",1,2],["Radeon Graphics (Ryzen)",1,2]] },
   { g: "Intel Arc", v: "intel", items: [["Arc B580",3,12],["Arc B570",3,10],["Arc A770",3,16],["Arc A750",3,8],["Arc A580",2,8],["Arc A380",2,6],["Arc A370M (laptop)",1,4]] },
   { g: "Intel integrated", v: "intel", items: [["Arc Graphics (Core Ultra)",1,2],["Iris Xe",1,2],["UHD Graphics 770 / 630",1,2],["HD Graphics 4600 / 530",1,2]] },
 ];
@@ -563,37 +578,70 @@ const RAM_OPTIONS = [4, 6, 8, 12, 16, 24, 32, 48, 64, 96, 128];
 const HZ_OPTIONS  = [60, 75, 90, 100, 120, 144, 165, 170, 175, 180, 200, 240, 280, 360, 480];
 
 /* ----------------------------------------------------------------------
+   BF6 GPU tier
+   BF6 is far heavier than the older games. Same rules as BF6_Optimizer.cmd,
+   anchored on the official specs: minimum is RTX 2060 / RX 5600 XT /
+   Arc A380, recommended is RTX 3060 Ti / RX 6700 XT / Arc B580.
+   First matching rule wins; unknown models fall back to VRAM.
+   ---------------------------------------------------------------------- */
+function bf6Tier(name, vram) {
+  const rules = [
+    [2, /Radeon(\(TM\))? 80[456]0S/],                                  // Strix Halo
+    [1, /Intel.*(UHD|HD Graphics|Iris)|^(UHD|HD Graphics|Iris)/],
+    [1, /Radeon\(TM\) Graphics|Radeon Graphics|Vega \d+ Graphics|Radeon Vega \d|Radeon(\(TM\))? \d{3}M\b/],
+    [3, /RTX 3060 Ti|RTX 4060(?! Laptop)/],                              // desktop 3060 Ti, 4060, 4060 Ti
+    [1, /RTX (2050|3050)|RTX 2060(?! SUPER)/],
+    [2, /RTX (2060|2070|3060|4050|4060|5050)/],                          // incl. laptop 4050/4060
+    [3, /RTX/],                                                          // 2080 and up, 3070 and up, 40/50 series
+    [2, /GTX 1080 Ti|TITAN (Xp|V)\b/],
+    [1, /GTX|GT \d|MX ?\d/],
+    [2, /RX (6[678]00S|7[67]00S|6600M|76\d\dM)/],
+    [3, /RX (6[7-9]\d\d|7[7-9]\d\d|9\d{3})/],                            // 6700 XT+, 7700 XT+, 9000 series
+    [2, /RX (5700|66\d\d|76\d\d)|Radeon VII/],
+    [1, /RX \d{3,4}|Vega (56|64)|R[579] \d{3}|Radeon (R[579]|HD) /],
+    [3, /Arc(\(TM\))? B580/],
+    [2, /Arc(\(TM\))? (A7[57]0|A580|B570)/],
+    [1, /Arc/],
+  ];
+  for (const [t, re] of rules) if (re.test(name)) return t;
+  return vram < 6 ? 1 : vram < 10 ? 2 : 3;
+}
+
+/* ----------------------------------------------------------------------
    Per-game data
    ---------------------------------------------------------------------- */
 const GAMES = {
   bf4: {
-    name: "Battlefield 4", exe: "bf4.exe", steamId: 1238860,
-    minRam: 4,
-    folders: [
-      "C:\\Program Files (x86)\\Origin Games\\Battlefield 4",
-      "C:\\Program Files\\EA Games\\Battlefield 4",
-      "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Battlefield 4",
-    ],
+    name: "Battlefield 4", short: "BF4", exe: "bf4.exe", minRam: 4, recRam: 8,
+    folders: ["C:\\Program Files (x86)\\Origin Games\\Battlefield 4", "C:\\Program Files\\EA Games\\Battlefield 4", "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Battlefield 4"],
     profile: "Documents\\Battlefield 4\\settings\\PROFSAVE_profile",
-    aaPost: ["Off", "Low", "Medium", "High"],
+    aaPost: ["Off", "Low", "Medium", "High"], customPreset: "4",
   },
   bf1: {
-    name: "Battlefield 1", exe: "bf1.exe", steamId: 1238840,
-    minRam: 8,
-    folders: [
-      "C:\\Program Files (x86)\\Origin Games\\Battlefield 1",
-      "C:\\Program Files\\EA Games\\Battlefield 1",
-      "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Battlefield 1",
-    ],
+    name: "Battlefield 1", short: "BF1", exe: "bf1.exe", minRam: 8, recRam: 16,
+    folders: ["C:\\Program Files (x86)\\Origin Games\\Battlefield 1", "C:\\Program Files\\EA Games\\Battlefield 1", "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Battlefield 1"],
     profile: "Documents\\Battlefield 1\\settings\\PROFSAVE_profile",
-    aaPost: ["Off", "FXAA Medium", "FXAA High", "TAA"],
+    aaPost: ["Off", "FXAA Medium", "FXAA High", "TAA"], customPreset: "4",
+  },
+  bfv: {
+    name: "Battlefield V", short: "BFV", exe: "bfv.exe", minRam: 8, recRam: 12,
+    folders: ["C:\\Program Files (x86)\\Origin Games\\Battlefield V", "C:\\Program Files\\EA Games\\Battlefield V", "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Battlefield V"],
+    profile: "Documents\\Battlefield V\\settings\\PROFSAVE_profile",
+    aaPost: ["Off", "TAA Low", "TAA High"], customPreset: "4",
+  },
+  bf6: {
+    name: "Battlefield 6", short: "BF6", exe: "bf6.exe", minRam: 16, recRam: 16,
+    folders: ["C:\\Program Files\\EA Games\\Battlefield 6", "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Battlefield 6", "C:\\Program Files\\Epic Games\\Battlefield6"],
+    profile: "Documents\\Battlefield 6\\settings\\PROFSAVE_profile",
+    aaPost: [], customPreset: "6",
+    needsProfile: true,   // a profile built from scratch would wipe keybinds, so BF6 requires the user's own
   },
 };
 
 /* Friendly names and value formats for the explanation table.
    q = Low/Medium/High/Ultra, onoff = Off/On, af = anisotropic, pct = scale */
 const LABELS = {
-  "GstRender.OverallGraphicsQuality": ["Graphics quality preset", v => v === "4" ? "Custom" : v],
+  "GstRender.OverallGraphicsQuality": ["Graphics quality preset", (v, g) => v === GAMES[g].customPreset ? "Custom" : v],
   "GstRender.TextureQuality":    ["Texture quality", "q"],
   "GstRender.TextureFiltering":  ["Texture filtering", "q"],
   "GstRender.MeshQuality":       ["Mesh quality", "q"],
@@ -602,71 +650,184 @@ const LABELS = {
   "GstRender.EffectsQuality":    ["Effects quality", "q"],
   "GstRender.LightingQuality":   ["Lighting quality", "q"],
   "GstRender.ShadowQuality":     ["Shadow quality", "q"],
+  "GstRender.SunShadowQuality":  ["Sun shadow quality", "q"],
+  "GstRender.ShadowFiltering":   ["Shadow filtering", "q"],
+  "GstRender.LocalLightShadowQuality": ["Local light shadows", "q"],
+  "GstRender.VolumetricQuality": ["Volumetric quality", "q"],
+  "GstRender.ReflectionQuality": ["Reflection quality", "q"],
   "GstRender.PostProcessQuality":["Post-process quality", "q"],
   "GstRender.AnisotropicFilter": ["Anisotropic filtering", "af"],
   "GstRender.AntiAliasingDeferred": ["Antialiasing deferred (MSAA)", v => ["Off","2x MSAA","4x MSAA"][+v] || v],
   "GstRender.AntiAliasingPost":  ["Antialiasing post", "aa"],
   "GstRender.ResolutionScale":   ["Resolution scale", "pct"],
   "GstRender.AmbientOcclusion":  ["Ambient occlusion", v => v === "0" ? "Off" : "On"],
+  "GstRender.RaytracingAmbientOcclusion": ["Ray-traced ambient occlusion", "onoff"],
+  "GstRender.ScreenSpaceReflections": ["Screen space reflections", "onoff"],
   "GstRender.Enlighten":         ["Enlighten (dynamic GI)", "onoff"],
   "GstRender.MotionBlurEnabled": ["Motion blur", "onoff"],
   "GstRender.MotionBlur":        ["Motion blur strength", v => Math.round(parseFloat(v) * 100) + "%"],
+  "GstRender.MotionBlurWorld":   ["World motion blur", v => Math.round(parseFloat(v) * 100) + "%"],
+  "GstRender.MotionBlurWeapon":  ["Weapon motion blur", v => Math.round(parseFloat(v) * 100) + "%"],
   "GstRender.TransparentShadows":["Transparent shadows", "onoff"],
   "GstRender.WeaponDOF":         ["Weapon depth of field", "onoff"],
   "GstRender.VSyncEnabled":      ["Vertical sync", "onoff"],
+  "GstRender.VSyncMode":         ["Vertical sync", "onoff"],
   "GstRender.Dx12Enabled":       ["DirectX 12", "onoff"],
   "GstRender.Dx12AutoDetect":    ["DirectX 12 auto-detect", "onoff"],
+  "GstRender.DxREnabled":        ["Ray tracing (DXR)", "onoff"],
+  "GstRender.DLSSEnabled":       ["NVIDIA DLSS", "onoff"],
+  "GstRender.FutureFrameRendering": ["Future frame rendering", "onoff"],
   "GstRender.ChromaticAberration": ["Chromatic aberration", "onoff"],
   "GstRender.FilmGrain":         ["Film grain", "onoff"],
+  "GstRender.Vignette":          ["Vignette", "onoff"],
   "GstRender.LensDistortion":    ["Lens distortion", "onoff"],
   "GstRender.SniperSweetspotDoF":["Sniper sweet spot DOF", "onoff"],
   "GstRender.ClampGpuMemory":    ["GPU memory restriction", "onoff"],
+  "GstRender.FrameGeneration":   ["Frame generation", "onoff"],
+  "GstRender.NVIDIAFrameGenerationEnabled": ["DLSS Frame Generation", "onoff"],
+  "GstRender.NvidiaMultiFrameGeneration":   ["DLSS Multi Frame Generation", "onoff"],
+  "GstRender.AMDFrameGenerationEnabled":    ["FSR Frame Generation", "onoff"],
+  "GstRender.IntelFrameGenerationEnabled":  ["XeSS Frame Generation", "onoff"],
+  "GstRender.NvidiaLowLatency":  ["NVIDIA Reflex", "onoff"],
+  "GstRender.AMDLowLatency":     ["AMD Anti-Lag", "onoff"],
+  "GstRender.IntelLowLatency":   ["Intel XeLL", "onoff"],
+  "GstRender.FrameRateLimiterEnable": ["Frame rate limiter", "onoff"],
+  "GstRender.FrameRateLimit":    ["Frame rate limit", v => Math.round(parseFloat(v)) + " FPS"],
   "GstInput.HeadtrackingEnabled":["Head tracking", "onoff"],
   "GstInput.SpeechRecognitionEnabled": ["Speech recognition", "onoff"],
 };
 
-/* Why each profile value is chosen (shown in the "Why these values" tab) */
+/* Why each profile value is chosen (shown in the "Why these values" tab).
+   A function receives the game id, for reasons that differ per game. */
 const REASONS = {
   "GstRender.OverallGraphicsQuality": "Required so the individual settings below are used.",
-  "GstRender.TextureQuality":   "Textures barely cost FPS when there's enough VRAM, and sharp textures help you read targets at range.",
-  "GstRender.TextureFiltering": "Matches texture quality.",
-  "GstRender.MeshQuality":      "Controls level of detail at distance. Kept high where possible so players and cover don't pop in. Uses CPU draw calls.",
-  "GstRender.TerrainQuality":   "Terrain detail at distance. Lowered on weak CPUs, since it adds draw calls.",
+  "GstRender.TextureQuality":   "Textures barely cost FPS when there's enough VRAM, and sharp textures help you read targets at range. Limited by VRAM and RAM.",
+  "GstRender.TextureFiltering": "Keeps distant ground and walls sharp for little cost.",
+  "GstRender.MeshQuality":      "Level of detail at distance. Kept high where possible so players and cover don't pop in. Uses CPU draw calls.",
+  "GstRender.TerrainQuality":   "Terrain detail at distance. Lowered on weaker CPUs, since it adds draw calls.",
   "GstRender.UndergrowthQuality": "Low means less grass and bushes hiding prone players. A competitive choice: the game looks emptier.",
   "GstRender.EffectsQuality":   "Lighter smoke, explosions and particles: easier to see through and fewer FPS drops in busy fights.",
   "GstRender.LightingQuality":  "Less sun glare and bloom with a moderate FPS gain.",
   "GstRender.ShadowQuality":    "Shadows are expensive. Medium keeps them readable without the cost of High or Ultra.",
+  "GstRender.SunShadowQuality": "Sun shadow resolution. Matches shadow quality.",
+  "GstRender.ShadowFiltering":  "Shadow edge softness. Matches shadow quality.",
+  "GstRender.LocalLightShadowQuality": "Shadows from lamps and small lights. Costly and rarely useful in play.",
+  "GstRender.VolumetricQuality":"Volumetric fog and light shafts. Low clears the air between you and enemies.",
+  "GstRender.ReflectionQuality":"Reflections cost a lot of GPU time and add nothing to gameplay.",
+  "GstRender.ScreenSpaceReflections": "Reflections cost a lot of GPU time and add nothing to gameplay.",
   "GstRender.PostProcessQuality": "Low removes most bloom and haze, so enemies stand out more. The image looks less cinematic.",
   "GstRender.AnisotropicFilter": "Sharper textures at angles for almost no cost.",
   "GstRender.AntiAliasingDeferred": "MSAA is extremely expensive in Frostbite's deferred renderer and can cost a large share of your FPS.",
-  "GstRender.AntiAliasingPost": "Cheap edge smoothing. On High tier in BF4, resolution scale replaces it.",
-  "GstRender.ResolutionScale":  "In BF4 on High tier, rendering at 125% gives a sharper image than MSAA for less cost. Otherwise native resolution.",
+  "GstRender.AntiAliasingPost": g => ({
+    bf4: "Cheap edge smoothing. On High tier, resolution scale replaces it.",
+    bf1: "TAA keeps foliage and fences from shimmering on High tier; FXAA is cheaper below that.",
+    bfv: "BF V relies on TAA for a stable image. High on strong GPUs, Low below.",
+  })[g] || "",
+  "GstRender.ResolutionScale":  g => g === "bf4" ? "On High tier, rendering at 125% gives a sharper image than MSAA for less cost. Otherwise native resolution." : "Native resolution: sharp image without extra cost.",
   "GstRender.AmbientOcclusion": "Big performance cost and no gameplay benefit. Lighting looks a bit flatter.",
+  "GstRender.RaytracingAmbientOcclusion": "Ray-traced shading in corners. Very expensive, no gameplay value.",
   "GstRender.Enlighten":        "Dynamic global illumination. Costs performance, adds little in play.",
   "GstRender.MotionBlurEnabled":"Blur hides detail when you turn. Off for clarity.",
   "GstRender.MotionBlur":       "Set to zero in case the toggle is ignored.",
+  "GstRender.MotionBlurWorld":  "Blur hides detail when you turn. Off for clarity.",
+  "GstRender.MotionBlurWeapon": "No blur on your weapon when moving.",
   "GstRender.TransparentShadows":"Shadows from smoke and particles. Costly in big fights.",
   "GstRender.WeaponDOF":        "Removes blur around your weapon when aiming.",
   "GstRender.VSyncEnabled":     "In-game V-Sync adds input lag. With G-Sync/FreeSync, V-Sync belongs in the driver instead.",
-  "GstRender.Dx12Enabled":      "BF1's DirectX 12 mode is known for stutter. DirectX 11 gives steadier frame times.",
+  "GstRender.VSyncMode":        "In-game V-Sync adds input lag. With G-Sync/FreeSync, V-Sync belongs in the driver instead.",
+  "GstRender.Dx12Enabled":      g => g === "bfv" ? "DirectX 11 usually gives steadier frame times in BF V. Switch to DX12 only if you want ray tracing or DLSS." : "BF1's DirectX 12 mode is known for stutter. DirectX 11 gives steadier frame times.",
   "GstRender.Dx12AutoDetect":   "Stops the game from switching back to DirectX 12.",
+  "GstRender.DxREnabled":       "Ray-traced reflections cost a huge share of your FPS for no gameplay benefit.",
+  "GstRender.DLSSEnabled":      "BF V uses the first version of DLSS, which looks noticeably blurry. It also requires DX12 and ray tracing.",
+  "GstRender.FutureFrameRendering": "Lets the CPU prepare frames ahead: more FPS, more input lag. Off on CPUs with 8+ threads for the lowest lag; kept on weaker CPUs, where turning it off costs too many frames.",
   "GstRender.ChromaticAberration": "Color fringing at the screen edges. Pure blur.",
   "GstRender.FilmGrain":        "Noise overlay. Off for a clean image.",
+  "GstRender.Vignette":         "Darkens the screen edges. Off to keep the periphery readable.",
   "GstRender.LensDistortion":   "Warps the image edges. Off for accurate aim at the periphery.",
   "GstRender.SniperSweetspotDoF": "Removes blur outside the scope's sweet spot.",
-  "GstRender.ClampGpuMemory":   "Keeps VRAM use inside the card's limit. Turned off on High-tier cards that have plenty of VRAM.",
+  "GstRender.ClampGpuMemory":   "Keeps VRAM use inside the card's limit. Turned off only on High-tier cards with plenty of VRAM and RAM.",
+  "GstRender.FrameGeneration":  "Generated frames raise the FPS counter but add input lag. Off for competitive play.",
+  "GstRender.NVIDIAFrameGenerationEnabled": "Generated frames add input lag.",
+  "GstRender.NvidiaMultiFrameGeneration": "Generated frames add input lag.",
+  "GstRender.AMDFrameGenerationEnabled": "Generated frames add input lag.",
+  "GstRender.IntelFrameGenerationEnabled": "Generated frames add input lag.",
+  "GstRender.NvidiaLowLatency": "Cuts input lag. Only the setting for your GPU brand is used by the game.",
+  "GstRender.AMDLowLatency":    "Cuts input lag. Only the setting for your GPU brand is used by the game.",
+  "GstRender.IntelLowLatency":  "Cuts input lag. Only the setting for your GPU brand is used by the game.",
+  "GstRender.FrameRateLimiterEnable": "BF6's own frame limiter. See the frame rate limit below.",
+  "GstRender.FrameRateLimit":   "",   // filled in with the cap explanation
   "GstInput.HeadtrackingEnabled": "Unused feature.",
   "GstInput.SpeechRecognitionEnabled": "Unused feature that can listen to your microphone.",
 };
 
 /* ----------------------------------------------------------------------
-   Settings logic
+   Frame rate cap
+   BF4 / BF1 / BF V: in user.cfg. BF6: in the profile (its own limiter).
    ---------------------------------------------------------------------- */
-function profileSettings(game, tier, threads, ramGB, vramGB) {
+function frameCap(game, s) {
+  const { hz, vrr, laptop, tier, threads } = s;
+  if (vrr) {
+    // BF6 uses a wider gap at high refresh rates, like BF6_Optimizer.cmd:
+    // 60 -> 57, 144 -> 138, 165 -> 157, 240 -> 224
+    const gap = game === "bf6" ? Math.max(3, Math.ceil(hz * hz / 3600)) : 3;
+    return { fps: hz - gap, why: `G-Sync/FreeSync on: ${gap} FPS below ${hz} Hz keeps every frame inside the variable refresh range, avoiding tearing or V-Sync lag at the top.` };
+  }
+  const strong = tier >= 3 && threads >= (game === "bf6" ? 12 : 8);
+  if (laptop || !strong) return { fps: hz, why: `No variable refresh: matching ${hz} Hz keeps frame times even${laptop ? " and laptop temperatures in check" : ""}.` };
+  if (game === "bf6") return { fps: 0, why: `No variable refresh on a strong desktop: limiter off, so FPS above ${hz} Hz lowers input lag. Expect some tearing.` };
+  return { fps: Math.min(hz * 2, 300), why: `No variable refresh on a strong desktop: running above ${hz} Hz lowers input lag. Expect some tearing.` };
+}
+
+/* ----------------------------------------------------------------------
+   PROFSAVE_profile values
+   Quality values: 0 = Low, 1 = Medium, 2 = High, 3 = Ultra
+   AnisotropicFilter: 0 = 1x, 1 = 2x, 2 = 4x, 3 = 8x, 4 = 16x
+   ---------------------------------------------------------------------- */
+function profileSettings(game, st, fc) {
+  const { tier, threads, cores, ram, vram, laptop } = st;
   const s = {};
   const set = (o) => Object.assign(s, o);
+  const cap = (k, max) => { if (s[k] !== undefined && +s[k] > max) s[k] = String(max); };
+  const capped = [];
 
-  // Shared by both games and every tier
+  /* ---------- Battlefield 6 (same as BF6_Optimizer.cmd) ---------- */
+  if (game === "bf6") {
+    set({
+      "GstRender.OverallGraphicsQuality": "6",
+      "GstRender.MotionBlurWorld": "0.000000", "GstRender.MotionBlurWeapon": "0.000000",
+      "GstRender.ChromaticAberration": "0", "GstRender.FilmGrain": "0", "GstRender.LensDistortion": "0",
+      "GstRender.Vignette": "0", "GstRender.WeaponDOF": "0",
+      "GstRender.UndergrowthQuality": "0", "GstRender.PostProcessQuality": "0", "GstRender.VolumetricQuality": "0",
+      "GstRender.AmbientOcclusion": "0", "GstRender.RaytracingAmbientOcclusion": "0", "GstRender.ScreenSpaceReflections": "0",
+      "GstRender.ReflectionQuality": "0", "GstRender.LocalLightShadowQuality": "0", "GstRender.TransparentShadows": "0",
+      "GstRender.Enlighten": "0",
+      "GstRender.FrameGeneration": "0", "GstRender.NVIDIAFrameGenerationEnabled": "0", "GstRender.NvidiaMultiFrameGeneration": "0",
+      "GstRender.AMDFrameGenerationEnabled": "0", "GstRender.IntelFrameGenerationEnabled": "0",
+      "GstRender.NvidiaLowLatency": "1", "GstRender.AMDLowLatency": "1", "GstRender.IntelLowLatency": "1",
+      "GstRender.VSyncMode": "0",
+    });
+    // [texture, filtering, mesh, terrain, lighting, effects, shadow, sun shadow, shadow filtering]
+    const T = { 3: ["2","2","2","2","1","1","1","1","1"], 2: ["1","2","1","1","0","0","0","0","0"], 1: ["0","1","0","0","0","0","0","0","0"] }[tier];
+    set({
+      "GstRender.TextureQuality": T[0], "GstRender.TextureFiltering": T[1], "GstRender.MeshQuality": T[2], "GstRender.TerrainQuality": T[3],
+      "GstRender.LightingQuality": T[4], "GstRender.EffectsQuality": T[5], "GstRender.ShadowQuality": T[6],
+      "GstRender.SunShadowQuality": T[7], "GstRender.ShadowFiltering": T[8],
+    });
+    // Textures cost VRAM, not frame rate
+    if (vram > 0) { const before = s["GstRender.TextureQuality"]; cap("GstRender.TextureQuality", vram >= 8 ? 2 : vram >= 6 ? 1 : 0); if (before !== s["GstRender.TextureQuality"]) capped.push("vram"); }
+    // BF6 is CPU-heavy: cap mesh/terrain on 8 threads or fewer, under 8 cores, or laptops
+    if (threads <= 8 || cores < 8 || laptop) {
+      const b = s["GstRender.MeshQuality"] + s["GstRender.TerrainQuality"];
+      cap("GstRender.MeshQuality", 1); cap("GstRender.TerrainQuality", 1);
+      if (b !== s["GstRender.MeshQuality"] + s["GstRender.TerrainQuality"]) capped.push("cpu6");
+    }
+    // Frame rate limiter
+    if (fc.fps) set({ "GstRender.FrameRateLimiterEnable": "1", "GstRender.FrameRateLimit": fc.fps.toFixed(6) });
+    else set({ "GstRender.FrameRateLimiterEnable": "0" });
+    return { settings: s, capped };
+  }
+
+  /* ---------- Battlefield 4 / 1 / V ---------- */
   set({
     "GstRender.OverallGraphicsQuality": "4",
     "GstRender.AmbientOcclusion": "0",
@@ -680,21 +841,20 @@ function profileSettings(game, tier, threads, ramGB, vramGB) {
     "GstRender.VSyncEnabled": "0",
     "GstRender.WeaponDOF": "0",
   });
-
-  if (game === "bf4") {
-    set({ "GstInput.HeadtrackingEnabled": "0", "GstInput.SpeechRecognitionEnabled": "0" });
-  } else {
+  if (game === "bf4") set({ "GstInput.HeadtrackingEnabled": "0", "GstInput.SpeechRecognitionEnabled": "0" });
+  if (game === "bf1" || game === "bfv") {
     set({
-      "GstRender.Dx12Enabled": "0",
-      "GstRender.Dx12AutoDetect": "0",
-      "GstRender.ChromaticAberration": "0",
-      "GstRender.FilmGrain": "0",
-      "GstRender.LensDistortion": "0",
-      "GstRender.SniperSweetspotDoF": "0",
+      "GstRender.Dx12Enabled": "0", "GstRender.Dx12AutoDetect": "0",
+      "GstRender.ChromaticAberration": "0", "GstRender.FilmGrain": "0", "GstRender.LensDistortion": "0",
     });
   }
+  if (game === "bf1") set({ "GstRender.SniperSweetspotDoF": "0" });
+  if (game === "bfv") set({
+    "GstRender.Vignette": "0", "GstRender.DxREnabled": "0", "GstRender.DLSSEnabled": "0",
+    "GstRender.FutureFrameRendering": threads >= 8 ? "0" : "1",
+  });
 
-  // Tier values: [texture, mesh, terrain, filtering, aniso, effects, lighting, shadows]
+  // [texture, mesh, terrain, filtering, aniso, effects, lighting, shadows]
   const T = { 3: ["3","3","3","3","4","1","1","1"], 2: ["2","2","2","2","4","1","1","1"], 1: ["1","1","1","1","2","0","0","0"] }[tier];
   set({
     "GstRender.TextureQuality": T[0], "GstRender.MeshQuality": T[1], "GstRender.TerrainQuality": T[2],
@@ -703,44 +863,75 @@ function profileSettings(game, tier, threads, ramGB, vramGB) {
   });
 
   if (game === "bf4") {
-    // BF4: supersampling replaces AA on High tier
-    set({
-      "GstRender.AntiAliasingPost": tier === 3 ? "0" : "1",
-      "GstRender.ResolutionScale": tier === 3 ? "1.250000" : "1.000000",
-    });
+    set({ "GstRender.AntiAliasingPost": tier === 3 ? "0" : "1", "GstRender.ResolutionScale": tier === 3 ? "1.250000" : "1.000000" });
+  } else if (game === "bf1") {
+    set({ "GstRender.AntiAliasingPost": { 3: "3", 2: "2", 1: "1" }[tier], "GstRender.ResolutionScale": "1.000000", "GstRender.ClampGpuMemory": tier === 3 ? "0" : "1" });
   } else {
-    // BF1: TAA keeps foliage stable on High tier; FXAA below
-    set({
-      "GstRender.AntiAliasingPost": { 3: "3", 2: "2", 1: "1" }[tier],
-      "GstRender.ResolutionScale": "1.000000",
-      "GstRender.ClampGpuMemory": tier === 3 ? "0" : "1",
-    });
+    set({ "GstRender.AntiAliasingPost": tier === 3 ? "2" : "1", "GstRender.ResolutionScale": "1.000000", "GstRender.ClampGpuMemory": tier === 3 ? "0" : "1" });
   }
-
-  const cap = (k, max) => { if (+s[k] > max) s[k] = String(max); };
-  const capped = [];
 
   // Weak CPU: mesh and terrain add draw calls
   if (threads <= 4) { cap("GstRender.MeshQuality", 1); cap("GstRender.TerrainQuality", 1); capped.push("cpu"); }
 
   // Low system RAM: texture streaming stutters
-  if (game === "bf4" && ramGB < 8) { cap("GstRender.TextureQuality", 1); cap("GstRender.MeshQuality", 1); capped.push("ram"); }
-  if (game === "bf1") {
-    if (ramGB <= 8)      { cap("GstRender.TextureQuality", 1); s["GstRender.ClampGpuMemory"] = "1"; capped.push("ram"); }
-    else if (ramGB < 16) { cap("GstRender.TextureQuality", 2); s["GstRender.ClampGpuMemory"] = "1"; capped.push("ram"); }
+  if (game === "bf4" && ram < 8) { cap("GstRender.TextureQuality", 1); cap("GstRender.MeshQuality", 1); capped.push("ram"); }
+  if (game === "bf1" || game === "bfv") {
+    const rec = GAMES[game].recRam;
+    if (ram <= 8)       { cap("GstRender.TextureQuality", 1); s["GstRender.ClampGpuMemory"] = "1"; capped.push("ram"); }
+    else if (ram < rec) { cap("GstRender.TextureQuality", 2); s["GstRender.ClampGpuMemory"] = "1"; capped.push("ram"); }
   }
   // Small VRAM
-  if (vramGB && vramGB < 4) { cap("GstRender.TextureQuality", 1); }
+  if (vram && vram < 4) cap("GstRender.TextureQuality", 1);
+  if (game === "bfv" && vram && vram < 6) cap("GstRender.TextureQuality", 2);
 
   return { settings: s, capped };
 }
 
-function frameCap(hz, vrr, laptop, tier, threads) {
-  if (vrr) return { fps: hz - 3, why: `G-Sync/FreeSync on: 3 FPS below ${hz} Hz keeps every frame inside the variable refresh range, avoiding tearing or V-Sync lag at the top.` };
-  const strong = tier >= 3 && threads >= 8;
-  if (laptop || !strong) return { fps: hz, why: `No variable refresh: matching ${hz} Hz keeps frame times even${laptop ? " and laptop temperatures in check" : ""}.` };
-  const fps = Math.min(hz * 2, 300);
-  return { fps, why: `No variable refresh on a strong desktop: running above ${hz} Hz lowers input lag. Expect some tearing.` };
+/* ----------------------------------------------------------------------
+   user.cfg lines and their explanations
+   ---------------------------------------------------------------------- */
+function buildCfg(game, st, fc) {
+  if (game === "bf6") {
+    // Community fix for BF6's high CPU usage: tells the engine how many
+    // cores (job threads) and logical processors (render threads) to use
+    const lines = [
+      `Thread.ProcessorCount ${st.cores}`,
+      `Thread.MaxProcessorCount ${st.cores}`,
+      "Thread.MinFreeProcessorCount 0",
+      "Thread.JobThreadPriority 0",
+      `GstRender.Thread.MaxProcessorCount ${st.threads}`,
+    ];
+    const why = [
+      ["Thread.ProcessorCount", st.cores, "Number of CPU cores the engine uses for job threads."],
+      ["Thread.MaxProcessorCount", st.cores, "Upper limit for job threads, matched to your core count."],
+      ["Thread.MinFreeProcessorCount", 0, "Doesn't keep cores in reserve for other programs."],
+      ["Thread.JobThreadPriority", 0, "Normal priority for job threads."],
+      ["GstRender.Thread.MaxProcessorCount", st.threads, "Render threads, matched to your logical processors. Update it after a CPU upgrade."],
+    ];
+    return { lines, why };
+  }
+  const ral = st.threads <= 4 ? 2 : 1;
+  const lines = [
+    `PerfOverlay.DrawFps ${st.exFps ? 1 : 0}`,
+    `GameTime.MaxVariableFps ${fc.fps}`,
+    `RenderDevice.RenderAheadLimit ${ral}`,
+    "RenderDevice.TripleBufferingEnable 0",
+    "RenderDevice.VSyncEnable 0",
+    "WorldRender.MotionBlurEnable 0",
+  ];
+  if (st.exGraph) lines.push("PerfOverlay.DrawGraph 1");
+  if (st.exLog) lines.push("PerfOverlay.FrameFileLogEnable 1");
+  const why = [
+    ["GameTime.MaxVariableFps", fc.fps, fc.why],
+    ["RenderDevice.RenderAheadLimit", ral, ral === 1 ? "Frames the CPU can queue ahead of the GPU. One frame gives the lowest input lag." : "Two frames: a one-frame queue makes CPUs with 4 threads or fewer stutter."],
+    ["RenderDevice.TripleBufferingEnable", 0, "Triple buffering adds a frame of latency."],
+    ["RenderDevice.VSyncEnable", 0, st.vrr ? "V-Sync goes in the driver together with G-Sync/FreeSync, not in the game." : "V-Sync adds input lag. The FPS cap keeps frame times even instead."],
+    ["WorldRender.MotionBlurEnable", 0, "Makes sure motion blur stays off."],
+    ["PerfOverlay.DrawFps", st.exFps ? 1 : 0, st.exFps ? "On-screen FPS counter, so you can check the cap works." : "FPS counter hidden."],
+  ];
+  if (st.exGraph) why.push(["PerfOverlay.DrawGraph", 1, "Shows CPU and GPU frame times. If the CPU line is higher, you're CPU limited and lowering graphics won't help much."]);
+  if (st.exLog) why.push(["PerfOverlay.FrameFileLogEnable", 1, `Writes frame times to a CSV file in Documents\\${GAMES[game].name}. Turn it off when you're done benchmarking.`]);
+  return { lines, why, ral };
 }
 
 /* ----------------------------------------------------------------------
@@ -753,11 +944,11 @@ function fillCpu() {
   const sel = $("cpu");
   CPUS.forEach((grp, gi) => {
     const og = el("optgroup", { label: grp.g });
-    grp.items.forEach(([n, t], i) => og.appendChild(el("option", { value: `${gi}-${i}` }, `${n} (${t} threads)`)));
+    grp.items.forEach(([n, c, t], i) => og.appendChild(el("option", { value: `${gi}-${i}` }, `${n} (${c} cores, ${t} threads)`)));
     sel.appendChild(og);
   });
   const og = el("optgroup", { label: "Other" });
-  og.appendChild(el("option", { value: "other" }, "Not listed: enter threads"));
+  og.appendChild(el("option", { value: "other" }, "Not listed: enter cores and threads"));
   sel.appendChild(og);
   sel.value = "7-0"; // i7-8700K as a sensible default
 }
@@ -782,25 +973,36 @@ function fillSimple(id, list, unit, def) {
 /* ----------------------------------------------------------------------
    State
    ---------------------------------------------------------------------- */
-let uploaded = null;   // { name, text, eol }
+// One loaded profile per game, so switching games doesn't mix files up
+const uploaded = {};   // game -> { name, text, eol, endNl }
 let prevLines = { cfg: [], prof: [] };
 let outputs = { cfg: "", prof: "" };
+let lastGame = null;
 
 function radio(name) { return document.querySelector(`input[name="${name}"]:checked`).value; }
 function setRadio(name, v) { const r = document.querySelector(`input[name="${name}"][value="${v}"]`); if (r) r.checked = true; }
 
 function readState() {
-  const cpuVal = $("cpu").value, gpuVal = $("gpu").value;
-  let threads, cpuName, cpuLaptop = false;
-  if (cpuVal === "other") { threads = Math.max(2, parseInt($("threads").value, 10) || 8); cpuName = `Custom CPU (${threads} threads)`; }
-  else { const [g, i] = cpuVal.split("-").map(Number); const it = CPUS[g].items[i]; threads = it[1]; cpuName = it[0]; cpuLaptop = !!CPUS[g].laptop; }
+  const cpuVal = $("cpu").value, gpuVal = $("gpu").value, game = radio("game");
+  let cores, threads, cpuLaptop = false;
+  if (cpuVal === "other") {
+    threads = Math.max(2, parseInt($("threads").value, 10) || 8);
+    cores = Math.min(threads, Math.max(1, parseInt($("cores").value, 10) || Math.ceil(threads / 2)));
+  } else {
+    const [g, i] = cpuVal.split("-").map(Number); const it = CPUS[g].items[i];
+    cores = it[1]; threads = it[2]; cpuLaptop = !!CPUS[g].laptop;
+  }
 
   let tier, vram, vendor, gpuName;
-  if (gpuVal === "other") { tier = +$("gpuTier").value; vram = 0; vendor = $("gpuVendor").value; gpuName = "Custom GPU"; }
-  else { const [g, i] = gpuVal.split("-").map(Number); const it = GPUS[g].items[i]; tier = it[1]; vram = it[2]; vendor = GPUS[g].v; gpuName = it[0]; }
+  if (gpuVal === "other") { tier = +$("gpuTier").value; vram = 0; vendor = $("gpuVendor").value; gpuName = ""; }
+  else {
+    const [g, i] = gpuVal.split("-").map(Number); const it = GPUS[g].items[i];
+    vram = it[2]; vendor = GPUS[g].v; gpuName = it[0];
+    tier = game === "bf6" ? bf6Tier(gpuName, vram) : it[1];
+  }
 
   return {
-    game: radio("game"), cpuVal, gpuVal, threads, cpuName, cpuLaptop, tier, vram, vendor, gpuName,
+    game, cpuVal, gpuVal, cores, threads, cpuLaptop, tier, vram, vendor, gpuName,
     ram: +$("ram").value, hz: +$("hz").value, vrr: radio("vrr") === "1", laptop: radio("sys") === "laptop",
     exFps: $("exFps").checked, exGraph: $("exGraph").checked, exLog: $("exLog").checked,
   };
@@ -810,8 +1012,8 @@ function readState() {
 function writeHash(s) {
   const p = new URLSearchParams({ g: s.game, cpu: s.cpuVal, gpu: s.gpuVal, ram: s.ram, hz: s.hz, vrr: s.vrr ? 1 : 0, sys: s.laptop ? "laptop" : "desktop",
     ex: [s.exFps && "fps", s.exGraph && "graph", s.exLog && "log"].filter(Boolean).join(",") });
-  if (s.cpuVal === "other") p.set("t", s.threads);
-  if (s.gpuVal === "other") { p.set("gt", s.tier); p.set("gv", s.vendor); }
+  if (s.cpuVal === "other") { p.set("c", s.cores); p.set("t", s.threads); }
+  if (s.gpuVal === "other") { p.set("gt", $("gpuTier").value); p.set("gv", s.vendor); }
   history.replaceState(null, "", "#" + p.toString());
   try { localStorage.setItem("bfcfg", p.toString()); } catch (e) {}
 }
@@ -821,7 +1023,7 @@ function readHash() {
   if (!str) return;
   const p = new URLSearchParams(str);
   const optExists = (sel, v) => [...sel.options].some(o => o.value === v);
-  if (p.get("g")) setRadio("game", p.get("g"));
+  if (p.get("g") && GAMES[p.get("g")]) setRadio("game", p.get("g"));
   if (p.get("cpu") && optExists($("cpu"), p.get("cpu"))) $("cpu").value = p.get("cpu");
   if (p.get("gpu") && optExists($("gpu"), p.get("gpu"))) $("gpu").value = p.get("gpu");
   if (p.get("ram") && optExists($("ram"), p.get("ram"))) $("ram").value = p.get("ram");
@@ -829,13 +1031,14 @@ function readHash() {
   if (p.get("vrr")) setRadio("vrr", p.get("vrr"));
   if (p.get("sys")) setRadio("sys", p.get("sys"));
   if (p.has("ex")) { const ex = p.get("ex").split(","); $("exFps").checked = ex.includes("fps"); $("exGraph").checked = ex.includes("graph"); $("exLog").checked = ex.includes("log"); }
+  if (p.get("c")) $("cores").value = p.get("c");
   if (p.get("t")) $("threads").value = p.get("t");
   if (p.get("gt")) $("gpuTier").value = p.get("gt");
   if (p.get("gv")) $("gpuVendor").value = p.get("gv");
 }
 
 /* ----------------------------------------------------------------------
-   Rendering
+   Rendering helpers
    ---------------------------------------------------------------------- */
 function renderCode(preId, key, lines) {
   const pre = $(preId);
@@ -857,75 +1060,112 @@ function fmtValue(key, v, game) {
   const L = LABELS[key];
   if (!L) return v;
   const f = L[1];
-  if (typeof f === "function") return f(v);
+  if (typeof f === "function") return f(v, game);
   if (f === "q") return ["Low", "Medium", "High", "Ultra"][+v] ?? v;
-  if (f === "onoff") return v === "0" ? "Off" : "On";
+  if (f === "onoff") return +v === 0 ? "Off" : "On";
   if (f === "af") return ["1x", "2x", "4x", "8x", "16x"][+v] ?? v;
   if (f === "aa") return GAMES[game].aaPost[+v] ?? v;
   if (f === "pct") return Math.round(parseFloat(v) * 100) + "%";
   return v;
 }
+const reasonFor = (k, game) => { const r = REASONS[k]; return typeof r === "function" ? r(game) : (r || ""); };
 
+/* "4" and "4.000000" are the same setting; the game writes many values as floats */
+function sameValue(a, b) {
+  const x = Number(a), y = Number(b);
+  if (a.trim() !== "" && b.trim() !== "" && !isNaN(x) && !isNaN(y)) return x === y;
+  return a === b;
+}
+
+/* Apply settings on top of the user's profile. Every other line is kept
+   exactly as the game wrote it; line endings are preserved. */
+function patchProfile(up, settings) {
+  const body = up.text.replace(/\r?\n$/, "");
+  const src = body.length ? body.split(/\r?\n/) : [];
+  const seen = new Set(); const changes = [];
+  const out = src.map(line => {
+    const m = line.match(/^(\S+)\s+(.*)$/);
+    if (!m || settings[m[1]] === undefined) return line;
+    const k = m[1], old = m[2].trim(); let nv = settings[k];
+    seen.add(k);
+    if (sameValue(old, nv)) return line;
+    // Match the game's number format: an integer replacing a float is written as a float
+    if (/^-?\d+\.\d+$/.test(old) && /^-?\d+$/.test(nv)) nv = Number(nv).toFixed(6);
+    changes.push([k, old, nv]);
+    return `${k} ${nv}`;
+  });
+  Object.keys(settings).forEach(k => { if (!seen.has(k)) { out.push(`${k} ${settings[k]}`); changes.push([k, null, settings[k]]); } });
+  return { out, changes, text: out.join(up.eol) + (up.endNl ? up.eol : "") };
+}
+
+/* Guess which game a profile belongs to from keys only that game writes */
+function guessGame(t) {
+  if (/^GstRender\.(FrameRateLimiterEnable|NvidiaLowLatency|VSyncMode)\s/m.test(t)) return "bf6";
+  if (/^GstRender\.(FutureFrameRendering|DxREnabled|DLSSEnabled)\s/m.test(t)) return "bfv";
+  if (/^GstRender\.(Dx12Enabled|ChromaticAberration|FilmGrain)\s/m.test(t)) return "bf1";
+  return "bf4";
+}
+
+/* ----------------------------------------------------------------------
+   Main update
+   ---------------------------------------------------------------------- */
 function update() {
-  const s = readState();
-  const G = GAMES[s.game];
+  const st = readState();
+  const game = st.game, G = GAMES[game], is6 = game === "bf6";
+  const up = uploaded[game] || null;
+
+  // Switching games: reset the change highlights and the upload box
+  if (game !== lastGame) { prevLines = { cfg: [], prof: [] }; lastGame = game; syncUploadBox(); }
 
   // Show manual inputs for unlisted hardware
-  $("cpuManual").classList.toggle("on", s.cpuVal === "other");
-  $("gpuManual").classList.toggle("on", s.gpuVal === "other");
+  const cpuOther = st.cpuVal === "other";
+  $("cpuManual").classList.toggle("on", cpuOther);
+  $("cpuManualHint").style.display = cpuOther ? "" : "none";
+  $("gpuManual").classList.toggle("on", st.gpuVal === "other");
+
+  // Game-specific parts of the form
+  $("extrasStep").querySelector(".checks").style.display = is6 ? "none" : "";
+  $("extrasNote").style.display = is6 ? "" : "none";
+  $("profNeed").textContent = G.needsProfile ? "(required)" : "(recommended)";
+  const scriptUrl = SCRIPT_URLS[game];
+  $("scriptLine").hidden = !scriptUrl;
+  if (scriptUrl) { $("scriptLink").href = scriptUrl; $("scriptLink").textContent = `Download the ${G.name} optimizer script`; }
 
   /* ---------- user.cfg ---------- */
-  const fc = frameCap(s.hz, s.vrr, s.laptop, s.tier, s.threads);
-  const ral = s.threads <= 4 ? 2 : 1;
-  const cfg = [
-    `PerfOverlay.DrawFps ${s.exFps ? 1 : 0}`,
-    `GameTime.MaxVariableFps ${fc.fps}`,
-    `RenderDevice.RenderAheadLimit ${ral}`,
-    `RenderDevice.TripleBufferingEnable 0`,
-    `RenderDevice.VSyncEnable 0`,
-    `WorldRender.MotionBlurEnable 0`,
-  ];
-  if (s.exGraph) cfg.push("PerfOverlay.DrawGraph 1");
-  if (s.exLog) cfg.push("PerfOverlay.FrameFileLogEnable 1");
-  renderCode("cfgCode", "cfg", cfg);
-  outputs.cfg = cfg.join("\r\n") + "\r\n";
+  const fc = frameCap(game, st);
+  const cfg = buildCfg(game, st, fc);
+  renderCode("cfgCode", "cfg", cfg.lines);
+  outputs.cfg = cfg.lines.join("\r\n") + "\r\n";
+  $("cfgNote").textContent = is6
+    ? "Optional CPU thread settings for BF6's high CPU usage. Goes in the game's install folder, next to bf6.exe. Delete it if the game runs worse."
+    : `Goes in the game's install folder, next to ${G.exe}.`;
 
   /* ---------- PROFSAVE_profile ---------- */
-  const { settings, capped } = profileSettings(s.game, s.tier, s.threads, s.ram, s.vram);
+  const { settings, capped } = profileSettings(game, st, fc);
   const notes = [];
-  let changes = [];   // [key, old, new]
+  let changes = [];
   let profLines;
+  let profReady = true;
 
-  if (uploaded) {
-    const src = uploaded.text.split(/\r?\n/);
-    if (src.length && src[src.length - 1] === "") src.pop();
-    const seen = new Set();
-    const out = src.map(line => {
-      const m = line.match(/^(\S+)\s+(.*)$/);
-      if (m && settings[m[1]] !== undefined) {
-        seen.add(m[1]);
-        const old = m[2].trim();
-        if (old !== settings[m[1]]) changes.push([m[1], old, settings[m[1]]]);
-        return `${m[1]} ${settings[m[1]]}`;
-      }
-      return line;
-    });
-    Object.keys(settings).forEach(k => { if (!seen.has(k)) { out.push(`${k} ${settings[k]}`); changes.push([k, null, settings[k]]); } });
-    outputs.prof = out.join(uploaded.eol) + uploaded.eol;
-
-    // Show only the lines this tool sets; the download has the full file
-    const shown = out.filter(l => settings[l.split(/\s+/)[0]] !== undefined);
-    profLines = shown;
+  if (up) {
+    const res = patchProfile(up, settings);
+    changes = res.changes;
+    outputs.prof = res.text;
+    profLines = res.out.filter(l => settings[l.split(/\s+/)[0]] !== undefined);
     $("profNote").className = "panel-note";
-    $("profNote").textContent = `Showing the ${shown.length} lines this tool sets. The download is your full profile (${out.length} lines) with keybinds, sensitivity, FOV and audio kept. ${changes.length} values change.`;
+    $("profNote").textContent = `Showing the ${profLines.length} lines this tool sets. The download is your full profile (${res.out.length} lines) with keybinds, sensitivity, FOV and audio kept. ${changes.length} values change.`;
 
     // Sanity checks on the uploaded file
-    const t = uploaded.text;
-    const looksBF1 = /GstRender\.(Dx12Enabled|ChromaticAberration|FilmGrain)\s/.test(t);
-    if (s.game === "bf4" && looksBF1) notes.push(["warn", "The loaded profile looks like it's from Battlefield 1 or newer, not Battlefield 4. Check that you picked the right game and file."]);
-    if (s.game === "bf1" && !looksBF1) notes.push(["warn", "The loaded profile looks like it's from Battlefield 4, not Battlefield 1. Check that you picked the right game and file."]);
-    const fr = t.match(/^GstRender\.FullscreenRefreshRate\s+([\d.]+)/m);
-    if (fr && +fr[1] > 0 && +fr[1] < s.hz - 1) notes.push(["warn", `Your profile runs the game at ${Math.round(+fr[1])} Hz but you chose a ${s.hz} Hz display. Select ${s.hz} Hz in the game's Options > Video.`]);
+    const guess = guessGame(up.text);
+    if (guess !== game) notes.push(["warn", `The loaded profile looks like it's from ${GAMES[guess].name}, not ${G.name}. Check that you picked the right game and file.`]);
+    const fr = up.text.match(/^GstRender\.FullscreenRefreshRate\s+([\d.]+)/m);
+    if (fr && +fr[1] > 0 && +fr[1] < st.hz - 1) notes.push(["warn", `Your profile runs the game at ${Math.round(+fr[1])} Hz but you chose a ${st.hz} Hz display. Select ${st.hz} Hz in the game's display options.`]);
+  } else if (G.needsProfile) {
+    profReady = false;
+    profLines = Object.keys(settings).sort().map(k => `${k} ${settings[k]}`);
+    outputs.prof = "";
+    $("profNote").className = "panel-note warn";
+    $("profNote").textContent = "Preview only. Battlefield 6 profiles hold hundreds of settings, so a file built from scratch would reset your keybinds, HUD and audio. Load your current PROFSAVE_profile in step 6 to download yours.";
   } else {
     profLines = Object.keys(settings).sort().map(k => `${k} ${settings[k]}`);
     outputs.prof = profLines.join("\r\n") + "\r\n";
@@ -933,23 +1173,31 @@ function update() {
     $("profNote").textContent = "Graphics settings only. Replacing your profile with this file resets keybinds, sensitivity and audio to defaults. Load your current profile in step 6 to keep them.";
   }
   renderCode("profCode", "prof", profLines);
+  document.querySelectorAll('[data-dl="prof"], [data-copy="prof"]').forEach(b => { b.disabled = !profReady; b.style.opacity = profReady ? "" : ".45"; });
 
   /* ---------- Summary strip ---------- */
-  const tierName = { 3: "High", 2: "Medium", 1: "Low" }[s.tier];
+  const tierName = { 3: "High", 2: "Medium", 1: "Low" }[st.tier];
   const sum = $("summary"); sum.textContent = "";
-  [["Graphics tier", tierName], ["FPS cap", fc.fps], ["Render queue", ral], ["Game", s.game === "bf4" ? "BF4" : "BF1"]].forEach(([k, v]) => {
+  const third = is6 ? ["CPU threads", `${st.cores}/${st.threads}`] : ["Render queue", cfg.ral];
+  [["Graphics tier", tierName], ["FPS cap", fc.fps || "Off"], third, ["Game", G.short]].forEach(([k, v]) => {
     const d = el("div"); d.appendChild(el("dt", {}, k)); d.appendChild(el("dd", {}, String(v))); sum.appendChild(d);
   });
 
   /* ---------- Notes ---------- */
-  if (s.ram < G.minRam) notes.push(["warn", `${G.name} needs at least ${G.minRam} GB of RAM. Expect stutter regardless of settings.`]);
-  if (capped.includes("ram")) notes.push(["info", s.game === "bf1"
-    ? `With ${s.ram} GB of RAM, texture quality is capped and GPU memory restriction stays on to avoid streaming stutter. ${G.name} recommends 16 GB.`
-    : `With ${s.ram} GB of RAM, texture and mesh quality are capped at Medium to avoid streaming stutter.`]);
+  if (st.ram < G.minRam) notes.push(["warn", `${G.name} needs at least ${G.minRam} GB of RAM. Expect stutter regardless of settings.`]);
+  if (capped.includes("ram")) notes.push(["info", game === "bf4"
+    ? `With ${st.ram} GB of RAM, texture and mesh quality are capped at Medium to avoid streaming stutter.`
+    : `With ${st.ram} GB of RAM, texture quality is capped and GPU memory restriction stays on to avoid streaming stutter. ${G.name} recommends ${G.recRam} GB.`]);
   if (capped.includes("cpu")) notes.push(["info", "With 4 threads or fewer, mesh and terrain quality are capped at Medium and the render queue is 2 frames to reduce CPU stutter."]);
-  if (s.cpuLaptop && !s.laptop) notes.push(["info", "You picked a laptop processor but PC type is Desktop. Switch to Laptop if this is a laptop: the FPS cap is set more conservatively for temperatures."]);
-  if (s.laptop && s.vendor === "nvidia") notes.push(["info", "On laptops, plug in the charger and make sure the game uses the NVIDIA GPU: NVIDIA Control Panel > Manage 3D settings > Program settings > " + G.exe + " > High-performance NVIDIA processor."]);
-  if (s.hz === 60 && !s.laptop && s.tier === 3) notes.push(["info", "If your monitor supports more than 60 Hz, check Windows Settings > Display > Advanced display. High refresh monitors often ship set to 60 Hz."]);
+  if (capped.includes("cpu6")) notes.push(["info", st.laptop && st.threads > 8 && st.cores >= 8
+    ? "Laptop: mesh and terrain quality are capped at Medium, since the CPU shares power and cooling with the GPU. BF6 is CPU-heavy."
+    : `${st.cores} cores / ${st.threads} threads: mesh and terrain quality are capped at Medium. BF6 is CPU-heavy and recommends an 8-core CPU.`]);
+  if (capped.includes("vram")) notes.push(["info", `${st.vram} GB of VRAM: texture quality is limited to fit in video memory.`]);
+  if (game === "bfv" && st.threads < 8) notes.push(["info", "Future frame rendering stays on: with fewer than 8 threads, turning it off costs too many frames in BF V."]);
+  if (is6 && st.tier === 1) notes.push(["info", "On this GPU, turn on DLSS, FSR or XeSS (Quality) in Options > Graphics for a big FPS gain. The profile leaves upscaling as you set it."]);
+  if (st.cpuLaptop && !st.laptop) notes.push(["info", "You picked a laptop processor but PC type is Desktop. Switch to Laptop if this is a laptop: the FPS cap is set more conservatively for temperatures."]);
+  if (st.laptop && st.vendor === "nvidia") notes.push(["info", `On laptops, plug in the charger and make sure the game uses the NVIDIA GPU: NVIDIA Control Panel > Manage 3D settings > Program settings > ${G.exe} > High-performance NVIDIA processor.`]);
+  if (st.hz === 60 && !st.laptop && st.tier === 3) notes.push(["info", "If your monitor supports more than 60 Hz, check Windows Settings > Display > Advanced display. High refresh monitors often ship set to 60 Hz."]);
   const ul = $("notes"); ul.textContent = "";
   notes.forEach(([cls, text]) => ul.appendChild(el("li", { className: cls === "info" ? "info" : "" }, text)));
 
@@ -959,22 +1207,12 @@ function update() {
   const t1 = el("table");
   t1.innerHTML = "<thead><tr><th>Command</th><th>Value</th><th>Why</th></tr></thead>";
   const tb1 = el("tbody");
-  const cfgWhy = [
-    ["GameTime.MaxVariableFps", fc.fps, fc.why],
-    ["RenderDevice.RenderAheadLimit", ral, ral === 1 ? "Frames the CPU can queue ahead of the GPU. One frame gives the lowest input lag." : "Two frames: a one-frame queue makes CPUs with 4 threads or fewer stutter."],
-    ["RenderDevice.TripleBufferingEnable", 0, "Triple buffering adds a frame of latency."],
-    ["RenderDevice.VSyncEnable", 0, s.vrr ? "V-Sync goes in the driver together with G-Sync/FreeSync, not in the game." : "V-Sync adds input lag. The FPS cap keeps frame times even instead."],
-    ["WorldRender.MotionBlurEnable", 0, "Makes sure motion blur stays off."],
-    ["PerfOverlay.DrawFps", s.exFps ? 1 : 0, s.exFps ? "On-screen FPS counter, so you can check the cap works." : "FPS counter hidden."],
-  ];
-  if (s.exGraph) cfgWhy.push(["PerfOverlay.DrawGraph", 1, "Shows CPU and GPU frame times. If the CPU line is higher, you're CPU limited and lowering graphics won't help much."]);
-  if (s.exLog) cfgWhy.push(["PerfOverlay.FrameFileLogEnable", 1, "Writes frame times to a CSV file in Documents\\" + G.name + ". Turn it off when you're done benchmarking."]);
-  cfgWhy.forEach(([k, v, r]) => { const tr = el("tr"); tr.appendChild(el("td", {}, k)); tr.appendChild(el("td", { className: "val" }, String(v))); tr.appendChild(el("td", { className: "reason" }, r)); tb1.appendChild(tr); });
+  cfg.why.forEach(([k, v, r]) => { const tr = el("tr"); tr.appendChild(el("td", {}, k)); tr.appendChild(el("td", { className: "val" }, String(v))); tr.appendChild(el("td", { className: "reason" }, r)); tb1.appendChild(tr); });
   t1.appendChild(tb1); why.appendChild(t1);
 
   why.appendChild(el("h3", {}, "PROFSAVE_profile"));
   const t2 = el("table");
-  t2.innerHTML = uploaded
+  t2.innerHTML = up
     ? "<thead><tr><th>Setting</th><th>Was</th><th>Now</th><th>Why</th></tr></thead>"
     : "<thead><tr><th>Setting</th><th>Value</th><th>Why</th></tr></thead>";
   const tb2 = el("tbody");
@@ -983,59 +1221,72 @@ function update() {
     if (k === "GstRender.MotionBlur") return;  // shown under Motion blur
     const tr = el("tr");
     tr.appendChild(el("td", {}, LABELS[k]?.[0] || k));
-    if (uploaded) {
+    if (up) {
       const old = changedMap[k];
-      tr.appendChild(el("td", { className: "from" }, k in changedMap ? (old === null ? "missing" : fmtValue(k, old, s.game)) : "same"));
+      tr.appendChild(el("td", { className: "from" }, k in changedMap ? (old === null ? "missing" : fmtValue(k, old, game)) : "same"));
     }
-    tr.appendChild(el("td", { className: "val" }, fmtValue(k, settings[k], s.game)));
-    tr.appendChild(el("td", { className: "reason" }, REASONS[k] || ""));
+    tr.appendChild(el("td", { className: "val" }, fmtValue(k, settings[k], game)));
+    tr.appendChild(el("td", { className: "reason" }, k === "GstRender.FrameRateLimit" ? fc.why : reasonFor(k, game)));
     tb2.appendChild(tr);
   });
   t2.appendChild(tb2); why.appendChild(t2);
-  if (s.game === "bf1") why.appendChild(el("p", { className: "reason", style: "color:var(--code-dim);font-size:14px;margin:12px 0 0" },
-    "BF1's antialiasing values aren't officially documented. After applying, check Options > Video shows the expected setting."));
-  why.appendChild(el("p", { style: "color:var(--code-dim);font-size:14px;margin:12px 0 0" },
-    "Not changed: resolution, refresh rate, FOV, brightness, HUD, keybinds, mouse and controller settings, audio."));
+  const foot = (t) => why.appendChild(el("p", { style: "color:var(--code-dim);font-size:14px;margin:12px 0 0" }, t));
+  if (game === "bf1" || game === "bfv") foot(`${G.name}'s antialiasing values aren't officially documented. After applying, check that the video options show the expected setting.`);
+  foot(is6
+    ? "Not changed: resolution, upscaling (DLSS / FSR / XeSS), dynamic resolution, HDR, FOV, HUD, keybinds, mouse and controller settings, audio."
+    : "Not changed: resolution, refresh rate, FOV, brightness, HUD, keybinds, mouse and controller settings, audio.");
 
   /* ---------- Install paths ---------- */
   $("exeName").textContent = G.exe;
   const gp = $("gamePaths"); gp.textContent = "";
   G.folders.forEach(f => gp.appendChild(el("div", { className: "path" }, f)));
   $("profPath").textContent = G.profile;
-  $("dropHint").textContent = `Keeps your keybinds, sensitivity, FOV and audio. Find it in ${G.profile.replace(/\\PROFSAVE_profile$/, "")}.`;
+  $("profPathHint").hidden = !is6;
+  $("cfgOptional").hidden = !is6;
+  $("dropHint").textContent = `${G.needsProfile ? "Required to download the profile. " : ""}Keeps your keybinds, sensitivity, FOV and audio. Find it in ${G.profile.replace(/\\PROFSAVE_profile$/, "")}.`;
 
   /* ---------- Driver settings ---------- */
   const d = $("driver"); d.textContent = "";
   const items = [];
-  if (s.vendor === "nvidia") {
+  if (st.vendor === "nvidia") {
     d.appendChild(el("p", {}, `NVIDIA Control Panel > Manage 3D settings > Program settings > ${G.exe}:`));
-    if (s.vrr) items.push("G-Sync: on (Set up G-SYNC page)", "Vertical sync: On. With G-Sync this doesn't add lag while you stay under the FPS cap. Keep V-Sync off in the game.");
+    if (st.vrr) items.push("G-Sync: on (Set up G-SYNC page)", "Vertical sync: On. With G-Sync this doesn't add lag while you stay under the FPS cap. Keep V-Sync off in the game.");
     else items.push("Vertical sync: Off");
-    items.push("Low Latency Mode: On", "Power management mode: Prefer maximum performance");
-    if (s.laptop) items.push("Preferred graphics processor: High-performance NVIDIA processor");
-  } else if (s.vendor === "amd") {
+    items.push(is6 ? "Low Latency Mode: Off. NVIDIA Reflex is turned on in the game by the profile instead." : "Low Latency Mode: On");
+    items.push("Power management mode: Prefer maximum performance");
+    if (st.laptop) items.push("Preferred graphics processor: High-performance NVIDIA processor");
+  } else if (st.vendor === "amd") {
     d.appendChild(el("p", {}, `AMD Software: Adrenalin Edition > Gaming > ${G.name}:`));
-    if (s.vrr) items.push("AMD FreeSync: on", "Wait for Vertical Refresh: Always on. Keep V-Sync off in the game.");
+    if (st.vrr) items.push("AMD FreeSync: on", "Wait for Vertical Refresh: Always on. Keep V-Sync off in the game.");
     else items.push("Wait for Vertical Refresh: Off, unless application specifies");
-    items.push("Radeon Anti-Lag: on");
+    items.push(is6 ? "Radeon Anti-Lag: turned on in the game by the profile." : "Radeon Anti-Lag: on");
   } else {
     d.appendChild(el("p", {}, "Intel Graphics Software > Gaming:"));
-    if (s.vrr) items.push("Adaptive Sync: on", "Vertical sync: driver controlled on. Keep V-Sync off in the game.");
+    if (st.vrr) items.push("Adaptive Sync: on", "Vertical sync: driver controlled on. Keep V-Sync off in the game.");
     else items.push("Vertical sync: application controlled (the game's V-Sync is off)");
-    items.push("Low Latency: on, if available for your GPU");
+    items.push(is6 ? "Low latency (XeLL): turned on in the game by the profile." : "Low Latency: on, if available for your GPU");
   }
   const list = el("ul"); items.forEach(i => list.appendChild(el("li", {}, i))); d.appendChild(list);
   d.appendChild(el("p", { className: "hint" }, "Windows: Settings > System > Display > Graphics: set the game to High performance."));
 
-  writeHash(s);
+  writeHash(st);
 }
 
 /* ----------------------------------------------------------------------
    Upload, copy, download
+   Profiles are read and written as Latin-1, byte for byte, so any
+   non-ASCII characters in the file survive the round trip.
    ---------------------------------------------------------------------- */
+function syncUploadBox() {
+  const up = uploaded[radio("game")];
+  $("fileName").textContent = up ? `Loaded: ${up.name}` : "";
+  $("fileState").classList.toggle("on", !!up);
+  $("drop").style.display = up ? "none" : "";
+}
+
 function loadFile(file) {
   if (!file) return;
-  if (file.size > 2 * 1024 * 1024) { alert("That file is too large to be a PROFSAVE_profile."); return; }
+  if (file.size > 4 * 1024 * 1024) { alert("That file is too large to be a PROFSAVE_profile."); return; }
   const r = new FileReader();
   r.onload = () => {
     const text = String(r.result);
@@ -1043,25 +1294,28 @@ function loadFile(file) {
       alert("This file doesn't look like a PROFSAVE_profile. Choose the file named PROFSAVE_profile (no extension) from the game's settings folder.");
       return;
     }
-    uploaded = { name: file.name, text, eol: text.includes("\r\n") ? "\r\n" : "\n" };
-    $("fileName").textContent = `Loaded: ${file.name}`;
-    $("fileState").classList.add("on");
-    $("drop").style.display = "none";
+    uploaded[radio("game")] = { name: file.name, text, eol: text.includes("\r\n") ? "\r\n" : "\n", endNl: /\n$/.test(text) };
     prevLines.prof = [];
+    syncUploadBox();
     update();
   };
-  r.readAsText(file);
+  r.readAsText(file, "ISO-8859-1");
 }
 
 function download(kind) {
+  if (!outputs[kind]) return;
   const name = kind === "cfg" ? "user.cfg" : "PROFSAVE_profile";
-  const blob = new Blob([outputs[kind]], { type: "application/octet-stream" });
+  const str = outputs[kind];
+  const bytes = new Uint8Array(str.length);
+  for (let i = 0; i < str.length; i++) bytes[i] = str.charCodeAt(i) & 0xff;
+  const blob = new Blob([bytes], { type: "application/octet-stream" });
   const a = el("a", { href: URL.createObjectURL(blob), download: name });
   document.body.appendChild(a); a.click(); a.remove();
   setTimeout(() => URL.revokeObjectURL(a.href), 1000);
 }
 
 async function copyText(text, toastEl, msg) {
+  if (!text) return;
   try { await navigator.clipboard.writeText(text); }
   catch (e) {
     const ta = el("textarea", { value: text }); ta.style.position = "fixed"; ta.style.opacity = "0";
@@ -1107,9 +1361,7 @@ fillSimple("ram", RAM_OPTIONS, "GB", "16");
 fillSimple("hz", HZ_OPTIONS, "Hz", "144");
 readHash();
 initTabs(); initTheme();
-
 $("repoLink").href = REPO_URL;
-$("scriptLink").href = SCRIPT_URL;
 
 // Picking a laptop CPU or GPU switches PC type to Laptop (still editable)
 $("cpu").addEventListener("change", () => {
@@ -1124,14 +1376,14 @@ $("gpu").addEventListener("change", () => {
 $("f").addEventListener("input", update);
 $("f").addEventListener("change", update);
 
-$("file").addEventListener("change", (e) => loadFile(e.target.files[0]));
+$("file").addEventListener("change", (e) => { loadFile(e.target.files[0]); e.target.value = ""; });
 const drop = $("drop");
 ["dragenter", "dragover"].forEach(ev => drop.addEventListener(ev, (e) => { e.preventDefault(); drop.classList.add("over"); }));
 ["dragleave", "drop"].forEach(ev => drop.addEventListener(ev, (e) => { e.preventDefault(); drop.classList.remove("over"); }));
 drop.addEventListener("drop", (e) => loadFile(e.dataTransfer.files[0]));
 $("clearFile").addEventListener("click", () => {
-  uploaded = null; $("file").value = ""; $("fileState").classList.remove("on"); $("drop").style.display = "";
-  prevLines.prof = []; update();
+  delete uploaded[radio("game")];
+  prevLines.prof = []; syncUploadBox(); update();
 });
 
 document.querySelectorAll("[data-dl]").forEach(b => b.addEventListener("click", () => download(b.dataset.dl)));

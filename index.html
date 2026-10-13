@@ -299,7 +299,7 @@
   <header class="top">
     <h1>Tuned Battlefield configs for your PC</h1>
     <p>Pick your hardware and get a <code>user.cfg</code> and <code>PROFSAVE_profile</code> built for it, with every setting explained. Everything runs in your browser. Nothing is uploaded.</p>
-    <p class="script-link" id="scriptLine">On Windows and want automatic detection? <a id="scriptLink" href="#">Download the Battlefield 4 optimizer script</a>.</p>
+    <p class="script-link" id="scriptLine">On Windows and want automatic detection? <a id="scriptLink" href="https://github.com/j0p3s/Battlefield-user-profile-tweaker/releases/latest">Download the Battlefield Optimizer script</a> for all four games, with backups and Undo.</p>
   </header>
 
   <div class="grid">
@@ -520,17 +520,18 @@
    ====================================================================== */
 
 // Repository links (change these if you fork the project)
-const REPO_URL = "https://github.com/j0p3s/Battlefield-4-user.cfg-and-profsave_profile-generator-and-optimizer";
-// Windows scripts per game (only games with a published script get a link)
-const SCRIPT_URLS = { bf4: REPO_URL + "/releases/latest" };
+const REPO_URL   = "https://github.com/j0p3s/Battlefield-user-profile-tweaker";
+// Battlefield_Optimizer.cmd covers all four games
+const SCRIPT_URL = REPO_URL + "/releases/latest";
 
 /* ----------------------------------------------------------------------
    Hardware lists
    CPU entries: [name, cores, threads]
      Cores is the total Windows reports (P-cores + E-cores on hybrid Intel).
-   GPU entries: [name, tier, VRAM in GB]
-     Tier is for BF4 / BF1 / BF V: 3 = High, 2 = Medium, 1 = Low.
-     BF6 is much heavier and computes its own tier from the name (bf6Tier).
+   GPU entries: [name, VRAM in GB]
+     The graphics tier is computed from the name with the same rules as
+     Battlefield_Optimizer.cmd (gpuTierClassic for BF4 / BF1 / BF V,
+     bf6Tier for BF6), using the name the graphics driver reports.
    ---------------------------------------------------------------------- */
 const CPUS = [
   { g: "Intel Core Ultra (desktop)", items: [["Core Ultra 9 285K",24,24],["Core Ultra 7 265K",20,20],["Core Ultra 5 245K",14,14]] },
@@ -554,56 +555,98 @@ const CPUS = [
 ];
 
 const GPUS = [
-  { g: "NVIDIA RTX 50", v: "nvidia", items: [["RTX 5090",3,32],["RTX 5080",3,16],["RTX 5070 Ti",3,16],["RTX 5070",3,12],["RTX 5060 Ti",3,16],["RTX 5060",3,8],["RTX 5050",3,8]] },
-  { g: "NVIDIA RTX 40", v: "nvidia", items: [["RTX 4090",3,24],["RTX 4080 SUPER",3,16],["RTX 4080",3,16],["RTX 4070 Ti SUPER",3,16],["RTX 4070 Ti",3,12],["RTX 4070 SUPER",3,12],["RTX 4070",3,12],["RTX 4060 Ti",3,8],["RTX 4060",3,8]] },
-  { g: "NVIDIA RTX 30", v: "nvidia", items: [["RTX 3090 Ti",3,24],["RTX 3090",3,24],["RTX 3080 Ti",3,12],["RTX 3080",3,10],["RTX 3070 Ti",3,8],["RTX 3070",3,8],["RTX 3060 Ti",3,8],["RTX 3060",3,12],["RTX 3050",2,8]] },
-  { g: "NVIDIA RTX 20", v: "nvidia", items: [["RTX 2080 Ti",3,11],["RTX 2080 SUPER",3,8],["RTX 2080",3,8],["RTX 2070 SUPER",3,8],["RTX 2070",3,8],["RTX 2060 SUPER",3,8],["RTX 2060",3,6]] },
-  { g: "NVIDIA RTX laptop", v: "nvidia", laptop: true, items: [["RTX 5090 Laptop",3,24],["RTX 5080 Laptop",3,16],["RTX 5070 Ti Laptop",3,12],["RTX 5070 Laptop",3,8],["RTX 5060 Laptop",3,8],["RTX 4090 Laptop",3,16],["RTX 4080 Laptop",3,12],["RTX 4070 Laptop",3,8],["RTX 4060 Laptop",3,8],["RTX 4050 Laptop",3,6],["RTX 3080 Ti Laptop",3,16],["RTX 3080 Laptop",3,16],["RTX 3070 Laptop",3,8],["RTX 3060 Laptop",3,6],["RTX 3050 Ti Laptop",2,4],["RTX 3050 Laptop",2,4],["RTX 2080 Laptop",3,8],["RTX 2070 Laptop",3,8],["RTX 2060 Laptop",3,6],["RTX 2050 Laptop",2,4]] },
-  { g: "NVIDIA GTX 16", v: "nvidia", items: [["GTX 1660 SUPER",3,6],["GTX 1660 Ti",3,6],["GTX 1660",2,6],["GTX 1650 SUPER",2,4],["GTX 1650",2,4],["GTX 1630",1,4]] },
-  { g: "NVIDIA GTX 10", v: "nvidia", items: [["GTX 1080 Ti",3,11],["GTX 1080",3,8],["GTX 1070 Ti",3,8],["GTX 1070",3,8],["GTX 1060 6GB",2,6],["GTX 1060 3GB",2,3],["GTX 1050 Ti",1,4],["GTX 1050",1,2],["GT 1030",1,2]] },
-  { g: "NVIDIA GTX 900 and older", v: "nvidia", items: [["GTX 980 Ti",3,6],["GTX 980",2,4],["GTX 970",2,4],["GTX 960",1,2],["GTX 950",1,2],["GTX 780 Ti",1,3],["GTX 770",1,2],["GTX 750 Ti",1,2]] },
-  { g: "NVIDIA MX (laptop)", v: "nvidia", laptop: true, items: [["MX550",1,2],["MX450",1,2],["MX350",1,2]] },
-  { g: "AMD RX 9000", v: "amd", items: [["RX 9070 XT",3,16],["RX 9070",3,16],["RX 9060 XT",3,16]] },
-  { g: "AMD RX 7000", v: "amd", items: [["RX 7900 XTX",3,24],["RX 7900 XT",3,20],["RX 7900 GRE",3,16],["RX 7800 XT",3,16],["RX 7700 XT",3,12],["RX 7600 XT",3,16],["RX 7600",3,8]] },
-  { g: "AMD RX 6000", v: "amd", items: [["RX 6950 XT",3,16],["RX 6900 XT",3,16],["RX 6800 XT",3,16],["RX 6800",3,16],["RX 6750 XT",3,12],["RX 6700 XT",3,12],["RX 6650 XT",3,8],["RX 6600 XT",3,8],["RX 6600",3,8],["RX 6500 XT",2,4],["RX 6400",1,4]] },
-  { g: "AMD laptop", v: "amd", laptop: true, items: [["RX 7600S",3,8],["RX 6800M",3,12],["RX 6700M",3,10],["RX 6600M",3,8],["RX 6500M",2,4]] },
-  { g: "AMD RX 5000 and Vega", v: "amd", items: [["RX 5700 XT",3,8],["RX 5700",3,8],["RX 5600 XT",2,6],["RX 5500 XT",2,8],["Radeon VII",3,16],["RX Vega 64",3,8],["RX Vega 56",3,8]] },
-  { g: "AMD RX 500 / 400 and older", v: "amd", items: [["RX 590",2,8],["RX 580",2,8],["RX 570",2,4],["RX 480",2,8],["RX 470",2,4],["RX 560",1,4],["RX 550",1,2],["RX 460",1,4],["R9 390",2,8],["R9 380",1,4],["R7 370",1,2]] },
-  { g: "AMD integrated", v: "amd", items: [["Radeon 8060S (Ryzen AI Max)",3,16],["Radeon 890M / 880M",1,2],["Radeon 780M",1,2],["Radeon 680M",1,2],["Radeon Vega 8 / 11",1,2],["Radeon Graphics (Ryzen)",1,2]] },
-  { g: "Intel Arc", v: "intel", items: [["Arc B580",3,12],["Arc B570",3,10],["Arc A770",3,16],["Arc A750",3,8],["Arc A580",2,8],["Arc A380",2,6],["Arc A370M (laptop)",1,4]] },
-  { g: "Intel integrated", v: "intel", items: [["Arc Graphics (Core Ultra)",1,2],["Iris Xe",1,2],["UHD Graphics 770 / 630",1,2],["HD Graphics 4600 / 530",1,2]] },
+  { g: "NVIDIA RTX 50", v: "nvidia", items: [["RTX 5090",32],["RTX 5080",16],["RTX 5070 Ti",16],["RTX 5070",12],["RTX 5060 Ti",16],["RTX 5060",8],["RTX 5050",8]] },
+  { g: "NVIDIA RTX 40", v: "nvidia", items: [["RTX 4090",24],["RTX 4080 SUPER",16],["RTX 4080",16],["RTX 4070 Ti SUPER",16],["RTX 4070 Ti",12],["RTX 4070 SUPER",12],["RTX 4070",12],["RTX 4060 Ti",8],["RTX 4060",8]] },
+  { g: "NVIDIA RTX 30", v: "nvidia", items: [["RTX 3090 Ti",24],["RTX 3090",24],["RTX 3080 Ti",12],["RTX 3080",10],["RTX 3070 Ti",8],["RTX 3070",8],["RTX 3060 Ti",8],["RTX 3060",12],["RTX 3050",8]] },
+  { g: "NVIDIA RTX 20", v: "nvidia", items: [["RTX 2080 Ti",11],["RTX 2080 SUPER",8],["RTX 2080",8],["RTX 2070 SUPER",8],["RTX 2070",8],["RTX 2060 SUPER",8],["RTX 2060",6]] },
+  { g: "NVIDIA RTX laptop", v: "nvidia", laptop: true, items: [["RTX 5090 Laptop",24],["RTX 5080 Laptop",16],["RTX 5070 Ti Laptop",12],["RTX 5070 Laptop",8],["RTX 5060 Laptop",8],["RTX 4090 Laptop",16],["RTX 4080 Laptop",12],["RTX 4070 Laptop",8],["RTX 4060 Laptop",8],["RTX 4050 Laptop",6],["RTX 3080 Ti Laptop",16],["RTX 3080 Laptop",16],["RTX 3070 Laptop",8],["RTX 3060 Laptop",6],["RTX 3050 Ti Laptop",4],["RTX 3050 Laptop",4],["RTX 2080 Laptop",8],["RTX 2070 Laptop",8],["RTX 2060 Laptop",6],["RTX 2050 Laptop",4]] },
+  { g: "NVIDIA GTX 16", v: "nvidia", items: [["GTX 1660 SUPER",6],["GTX 1660 Ti",6],["GTX 1660",6],["GTX 1650 SUPER",4],["GTX 1650",4],["GTX 1630",4]] },
+  { g: "NVIDIA GTX 10", v: "nvidia", items: [["GTX 1080 Ti",11],["GTX 1080",8],["GTX 1070 Ti",8],["GTX 1070",8],["GTX 1060 6GB",6],["GTX 1060 3GB",3],["GTX 1050 Ti",4],["GTX 1050",2],["GT 1030",2]] },
+  { g: "NVIDIA GTX 900 and older", v: "nvidia", items: [["GTX 980 Ti",6],["GTX 980",4],["GTX 970",4],["GTX 960",2],["GTX 950",2],["GTX 780 Ti",3],["GTX 770",2],["GTX 750 Ti",2]] },
+  { g: "NVIDIA MX (laptop)", v: "nvidia", laptop: true, items: [["MX550",2],["MX450",2],["MX350",2]] },
+  { g: "AMD RX 9000", v: "amd", items: [["RX 9070 XT",16],["RX 9070",16],["RX 9060 XT",16]] },
+  { g: "AMD RX 7000", v: "amd", items: [["RX 7900 XTX",24],["RX 7900 XT",20],["RX 7900 GRE",16],["RX 7800 XT",16],["RX 7700 XT",12],["RX 7600 XT",16],["RX 7600",8]] },
+  { g: "AMD RX 6000", v: "amd", items: [["RX 6950 XT",16],["RX 6900 XT",16],["RX 6800 XT",16],["RX 6800",16],["RX 6750 XT",12],["RX 6700 XT",12],["RX 6650 XT",8],["RX 6600 XT",8],["RX 6600",8],["RX 6500 XT",4],["RX 6400",4]] },
+  { g: "AMD laptop", v: "amd", laptop: true, items: [["RX 7600S",8],["RX 6800M",12],["RX 6700M",10],["RX 6600M",8],["RX 6500M",4]] },
+  { g: "AMD RX 5000 and Vega", v: "amd", items: [["RX 5700 XT",8],["RX 5700",8],["RX 5600 XT",6],["RX 5500 XT",8],["Radeon VII",16],["RX Vega 64",8],["RX Vega 56",8]] },
+  { g: "AMD RX 500 / 400 and older", v: "amd", items: [["RX 590",8],["RX 580",8],["RX 570",4],["RX 480",8],["RX 470",4],["RX 560",4],["RX 550",2],["RX 460",4],["R9 390",8],["R9 380",4],["R7 370",2]] },
+  { g: "AMD integrated", v: "amd", items: [["Radeon 8060S (Ryzen AI Max)",16],["Radeon 890M / 880M",2],["Radeon 780M",2],["Radeon 680M",2],["Radeon Vega 8 / 11",2],["Radeon Graphics (Ryzen)",2]] },
+  { g: "Intel Arc", v: "intel", items: [["Arc B580",12],["Arc B570",10],["Arc A770",16],["Arc A750",8],["Arc A580",8],["Arc A380",6],["Arc A370M (laptop)",4]] },
+  { g: "Intel integrated", v: "intel", items: [["Arc Graphics (Core Ultra)",2],["Iris Xe",2],["UHD Graphics 770 / 630",2],["HD Graphics 4600 / 530",2]] },
 ];
 
 const RAM_OPTIONS = [4, 6, 8, 12, 16, 24, 32, 48, 64, 96, 128];
 const HZ_OPTIONS  = [60, 75, 90, 100, 120, 144, 165, 170, 175, 180, 200, 240, 280, 360, 480];
 
 /* ----------------------------------------------------------------------
-   BF6 GPU tier
-   BF6 is far heavier than the older games. Same rules as BF6_Optimizer.cmd,
-   anchored on the official specs: minimum is RTX 2060 / RX 5600 XT /
-   Arc A380, recommended is RTX 3060 Ti / RX 6700 XT / Arc B580.
-   First matching rule wins; unknown models fall back to VRAM.
+   GPU tiers: same rules as Battlefield_Optimizer.cmd
+   The script matches the name Windows reports for the graphics card
+   ("NVIDIA GeForce RTX 3080 Laptop GPU", "AMD Radeon RX 6600"...), so the
+   short names in the list are first turned into that form.
+   Rules are checked top to bottom; the first match wins. Unknown models
+   fall back to VRAM. 3 = High, 2 = Medium, 1 = Low.
    ---------------------------------------------------------------------- */
-function bf6Tier(name, vram) {
+function driverName(vendor, name) {
+  // "Radeon 890M / 880M" -> "Radeon 890M", "Arc A370M (laptop)" -> "Arc A370M"
+  const base = name.replace(/\s*\([^)]*\)/g, "").split(" / ")[0].trim();
+  if (vendor === "nvidia") return "NVIDIA GeForce " + base + (/Laptop$/.test(base) ? " GPU" : "");
+  if (vendor === "amd") {
+    if (base === "Radeon Graphics") return "AMD Radeon(TM) Graphics";               // Ryzen integrated
+    if (/^Radeon (\d{3}M|\d{4}S|Vega \d+)$/.test(base)) return "AMD " + base + " Graphics";
+    return "AMD " + (base.startsWith("Radeon") ? base : "Radeon " + base);
+  }
+  if (base.startsWith("Arc ")) return "Intel(R) Arc(TM) " + base.slice(4) + (base === "Arc Graphics" ? "" : " Graphics");
+  return "Intel(R) " + base.replace("Iris Xe", "Iris(R) Xe Graphics");
+}
+
+// BF4, BF1 and BF V (Get-GpuTierClassic)
+function gpuTierClassic(name, vram) {
+  const n = name.replace(/\s+/g, " ");
   const rules = [
-    [2, /Radeon(\(TM\))? 80[456]0S/],                                  // Strix Halo
-    [1, /Intel.*(UHD|HD Graphics|Iris)|^(UHD|HD Graphics|Iris)/],
-    [1, /Radeon\(TM\) Graphics|Radeon Graphics|Vega \d+ Graphics|Radeon Vega \d|Radeon(\(TM\))? \d{3}M\b/],
-    [3, /RTX 3060 Ti|RTX 4060(?! Laptop)/],                              // desktop 3060 Ti, 4060, 4060 Ti
-    [1, /RTX (2050|3050)|RTX 2060(?! SUPER)/],
-    [2, /RTX (2060|2070|3060|4050|4060|5050)/],                          // incl. laptop 4050/4060
-    [3, /RTX/],                                                          // 2080 and up, 3070 and up, 40/50 series
-    [2, /GTX 1080 Ti|TITAN (Xp|V)\b/],
-    [1, /GTX|GT \d|MX ?\d/],
-    [2, /RX (6[678]00S|7[67]00S|6600M|76\d\dM)/],
-    [3, /RX (6[7-9]\d\d|7[7-9]\d\d|9\d{3})/],                            // 6700 XT+, 7700 XT+, 9000 series
-    [2, /RX (5700|66\d\d|76\d\d)|Radeon VII/],
-    [1, /RX \d{3,4}|Vega (56|64)|R[579] \d{3}|Radeon (R[579]|HD) /],
-    [3, /Arc(\(TM\))? B580/],
-    [2, /Arc(\(TM\))? (A7[57]0|A580|B570)/],
-    [1, /Arc/],
+    [1, /Intel.*(UHD|HD Graphics|Iris)/i],
+    [3, /Radeon(\(TM\))? 80[456]0S/i],                                   // Strix Halo
+    [2, /Radeon(\(TM\))? (680|7[68]0|8[689]0)M\b/i],                     // RDNA 2/3/3.5 iGPUs
+    [1, /Radeon\(TM\) Graphics|Radeon Graphics\s*$|Vega \d+ Graphics|Radeon(\(TM\))? \d{3}M\b/i],
+    [3, /GTX 1660 (Ti|SUPER)/i],
+    [3, /GTX (1070|1080|980 Ti)|TITAN/i],
+    [2, /RTX (2050|3050)/i],
+    [3, /RTX/i],                                                         // every other RTX card
+    [2, /GTX (970|980|1060|1650|1660)M?\b/i],
+    [1, /GTX (1630|1050|9[56]\d|7\d0|6\d0)|GeForce (GT|MX) ?\d/i],
+    [3, /RX (5700|6[6-9]\d\d|7\d{3}|9\d{3})|Vega (56|64)|Radeon VII/i],
+    [2, /RX (470|480|570|580|590|5500|5600|6500)/i],
+    [1, /RX (460|550|560|6300|6400)|Radeon (R[579]|HD) /i],
+    [3, /Arc(\(TM\))? (A7\d0|B\d{3})/i],
+    [1, /Arc(\(TM\))? A[35]\d0M|Arc(\(TM\))? Graphics/i],                // laptop / integrated Arc
+    [2, /Arc(\(TM\))? A[35]\d0/i],
   ];
-  for (const [t, re] of rules) if (re.test(name)) return t;
+  for (const [t, re] of rules) if (re.test(n)) return t;
+  return vram < 4 ? 1 : vram < 8 ? 2 : 3;
+}
+
+// BF6 (Get-GpuTierBf6): anchored on the official specs. Minimum is
+// RTX 2060 / RX 5600 XT / Arc A380, recommended is RTX 3060 Ti / RX 6700 XT / Arc B580.
+function bf6Tier(name, vram) {
+  const n = name.replace(/\s+/g, " ");
+  const rules = [
+    [2, /Radeon(\(TM\))? 80[456]0S/i],                                   // Strix Halo
+    [1, /Intel.*(UHD|HD Graphics|Iris)/i],
+    [1, /Radeon\(TM\) Graphics|Radeon Graphics\s*$|Vega \d+ Graphics|Radeon(\(TM\))? \d{3}M\b/i],
+    [3, /RTX 3060 Ti|RTX 4060(?! Laptop)/i],                             // desktop 3060 Ti, 4060, 4060 Ti
+    [1, /RTX (2050|3050)|RTX 2060(?! SUPER)/i],
+    [2, /RTX (2060|2070|3060|4050|4060|5050)/i],                         // incl. laptop 4050/4060
+    [3, /RTX/i],                                                         // 2080 and up, 3070 and up, 40/50 series
+    [2, /GTX 1080 Ti|TITAN (Xp|V)\b/i],
+    [1, /GTX|GeForce (GT|MX) ?\d/i],
+    [2, /RX (6[678]00S|7[67]00S|6600M|76\d\dM)/i],
+    [3, /RX (6[7-9]\d\d|7[7-9]\d\d|9\d{3})/i],                           // 6700 XT+, 7700 XT+, 9000 series
+    [2, /RX (5700|66\d\d|76\d\d)|Radeon VII/i],
+    [1, /RX \d{3,4}|Vega (56|64)|Radeon (R[579]|HD) /i],
+    [3, /Arc(\(TM\))? B580/i],
+    [2, /Arc(\(TM\))? (A7[57]0|A580|B570)/i],
+    [1, /Arc/i],                                                         // A3x0, laptop A5x0M, integrated Arc
+  ];
+  for (const [t, re] of rules) if (re.test(n)) return t;
   return vram < 6 ? 1 : vram < 10 ? 2 : 3;
 }
 
@@ -615,25 +658,26 @@ const GAMES = {
     name: "Battlefield 4", short: "BF4", exe: "bf4.exe", minRam: 4, recRam: 8,
     folders: ["C:\\Program Files (x86)\\Origin Games\\Battlefield 4", "C:\\Program Files\\EA Games\\Battlefield 4", "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Battlefield 4"],
     profile: "Documents\\Battlefield 4\\settings\\PROFSAVE_profile",
-    aaPost: ["Off", "Low", "Medium", "High"], customPreset: "4",
+    aaPost: ["Off", "Low", "Medium", "High"], customPreset: "4", eol: "keep",
   },
   bf1: {
     name: "Battlefield 1", short: "BF1", exe: "bf1.exe", minRam: 8, recRam: 16,
     folders: ["C:\\Program Files (x86)\\Origin Games\\Battlefield 1", "C:\\Program Files\\EA Games\\Battlefield 1", "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Battlefield 1"],
     profile: "Documents\\Battlefield 1\\settings\\PROFSAVE_profile",
-    aaPost: ["Off", "FXAA Medium", "FXAA High", "TAA"], customPreset: "4",
+    aaPost: ["Off", "FXAA Medium", "FXAA High", "TAA"], customPreset: "4", eol: "crlf",
   },
   bfv: {
     name: "Battlefield V", short: "BFV", exe: "bfv.exe", minRam: 8, recRam: 12,
     folders: ["C:\\Program Files (x86)\\Origin Games\\Battlefield V", "C:\\Program Files\\EA Games\\Battlefield V", "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Battlefield V"],
     profile: "Documents\\Battlefield V\\settings\\PROFSAVE_profile",
-    aaPost: ["Off", "TAA Low", "TAA High"], customPreset: "4",
+    aaPost: ["Off", "TAA Low", "TAA High"], customPreset: "0", eol: "keep",
+    needsProfile: true,   // a profile built from scratch would reset HUD, colour-blind colours and audio
   },
   bf6: {
     name: "Battlefield 6", short: "BF6", exe: "bf6.exe", minRam: 16, recRam: 16,
     folders: ["C:\\Program Files\\EA Games\\Battlefield 6", "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Battlefield 6", "C:\\Program Files\\Epic Games\\Battlefield6"],
     profile: "Documents\\Battlefield 6\\settings\\PROFSAVE_profile",
-    aaPost: [], customPreset: "6",
+    aaPost: [], customPreset: "6", eol: "keep",
     needsProfile: true,   // a profile built from scratch would wipe keybinds, so BF6 requires the user's own
   },
 };
@@ -700,8 +744,8 @@ const LABELS = {
 /* Why each profile value is chosen (shown in the "Why these values" tab).
    A function receives the game id, for reasons that differ per game. */
 const REASONS = {
-  "GstRender.OverallGraphicsQuality": "Required so the individual settings below are used.",
-  "GstRender.TextureQuality":   "Textures barely cost FPS when there's enough VRAM, and sharp textures help you read targets at range. Limited by VRAM and RAM.",
+  "GstRender.OverallGraphicsQuality": g => g === "bfv" ? "BF V stores 0 here alongside customized settings and doesn't re-apply a preset over them." : "Required so the individual settings below are used.",
+  "GstRender.TextureQuality":   "Textures barely cost FPS when there's enough VRAM, and sharp textures help you read targets at range. In BF V and BF6 it's limited by VRAM.",
   "GstRender.TextureFiltering": "Keeps distant ground and walls sharp for little cost.",
   "GstRender.MeshQuality":      "Level of detail at distance. Kept high where possible so players and cover don't pop in. Uses CPU draw calls.",
   "GstRender.TerrainQuality":   "Terrain detail at distance. Lowered on weaker CPUs, since it adds draw calls.",
@@ -737,7 +781,7 @@ const REASONS = {
   "GstRender.VSyncMode":        "In-game V-Sync adds input lag. With G-Sync/FreeSync, V-Sync belongs in the driver instead.",
   "GstRender.Dx12Enabled":      g => g === "bfv" ? "DirectX 11 usually gives steadier frame times in BF V. Switch to DX12 only if you want ray tracing or DLSS." : "BF1's DirectX 12 mode is known for stutter. DirectX 11 gives steadier frame times.",
   "GstRender.Dx12AutoDetect":   "Stops the game from switching back to DirectX 12.",
-  "GstRender.DxREnabled":       "Ray-traced reflections cost a huge share of your FPS for no gameplay benefit.",
+  "GstRender.DxREnabled":       "Ray-traced reflections are far too heavy below the High tier. On High tier it's left as you set it.",
   "GstRender.DLSSEnabled":      "BF V uses the first version of DLSS, which looks noticeably blurry. It also requires DX12 and ray tracing.",
   "GstRender.FutureFrameRendering": "Lets the CPU prepare frames ahead: more FPS, more input lag. Off on CPUs with 8+ threads for the lowest lag; kept on weaker CPUs, where turning it off costs too many frames.",
   "GstRender.ChromaticAberration": "Color fringing at the screen edges. Pure blur.",
@@ -745,7 +789,7 @@ const REASONS = {
   "GstRender.Vignette":         "Darkens the screen edges. Off to keep the periphery readable.",
   "GstRender.LensDistortion":   "Warps the image edges. Off for accurate aim at the periphery.",
   "GstRender.SniperSweetspotDoF": "Removes blur outside the scope's sweet spot.",
-  "GstRender.ClampGpuMemory":   "Keeps VRAM use inside the card's limit. Turned off only on High-tier cards with plenty of VRAM and RAM.",
+  "GstRender.ClampGpuMemory":   "Keeps VRAM use inside the card's limit. Turned off only on High-tier cards, which have plenty of VRAM.",
   "GstRender.FrameGeneration":  "Generated frames raise the FPS counter but add input lag. Off for competitive play.",
   "GstRender.NVIDIAFrameGenerationEnabled": "Generated frames add input lag.",
   "GstRender.NvidiaMultiFrameGeneration": "Generated frames add input lag.",
@@ -767,9 +811,9 @@ const REASONS = {
 function frameCap(game, s) {
   const { hz, vrr, laptop, tier, threads } = s;
   if (vrr) {
-    // BF6 uses a wider gap at high refresh rates, like BF6_Optimizer.cmd:
+    // The gap grows with refresh rate (frame-time variance matters more at high Hz):
     // 60 -> 57, 144 -> 138, 165 -> 157, 240 -> 224
-    const gap = game === "bf6" ? Math.max(3, Math.ceil(hz * hz / 3600)) : 3;
+    const gap = Math.max(3, Math.ceil(hz * hz / 3600));
     return { fps: hz - gap, why: `G-Sync/FreeSync on: ${gap} FPS below ${hz} Hz keeps every frame inside the variable refresh range, avoiding tearing or V-Sync lag at the top.` };
   }
   const strong = tier >= 3 && threads >= (game === "bf6" ? 12 : 8);
@@ -827,63 +871,81 @@ function profileSettings(game, st, fc) {
     return { settings: s, capped };
   }
 
-  /* ---------- Battlefield 4 / 1 / V ---------- */
-  set({
-    "GstRender.OverallGraphicsQuality": "4",
-    "GstRender.AmbientOcclusion": "0",
-    "GstRender.AntiAliasingDeferred": "0",
-    "GstRender.Enlighten": "0",
-    "GstRender.MotionBlur": "0.000000",
-    "GstRender.MotionBlurEnabled": "0",
-    "GstRender.PostProcessQuality": "0",
-    "GstRender.TransparentShadows": "0",
-    "GstRender.UndergrowthQuality": "0",
-    "GstRender.VSyncEnabled": "0",
-    "GstRender.WeaponDOF": "0",
-  });
-  if (game === "bf4") set({ "GstInput.HeadtrackingEnabled": "0", "GstInput.SpeechRecognitionEnabled": "0" });
-  if (game === "bf1" || game === "bfv") {
-    set({
-      "GstRender.Dx12Enabled": "0", "GstRender.Dx12AutoDetect": "0",
-      "GstRender.ChromaticAberration": "0", "GstRender.FilmGrain": "0", "GstRender.LensDistortion": "0",
-    });
-  }
-  if (game === "bf1") set({ "GstRender.SniperSweetspotDoF": "0" });
-  if (game === "bfv") set({
-    "GstRender.Vignette": "0", "GstRender.DxREnabled": "0", "GstRender.DLSSEnabled": "0",
-    "GstRender.FutureFrameRendering": threads >= 8 ? "0" : "1",
-  });
+  // Keys are set in the same order as the script, so new keys are added
+  // to the file in the same order too.
+  const capMeshTerrain = () => {
+    if (threads <= 4) { cap("GstRender.MeshQuality", 1); cap("GstRender.TerrainQuality", 1); capped.push("cpu"); }
+  };
 
-  // [texture, mesh, terrain, filtering, aniso, effects, lighting, shadows]
-  const T = { 3: ["3","3","3","3","4","1","1","1"], 2: ["2","2","2","2","4","1","1","1"], 1: ["1","1","1","1","2","0","0","0"] }[tier];
-  set({
-    "GstRender.TextureQuality": T[0], "GstRender.MeshQuality": T[1], "GstRender.TerrainQuality": T[2],
-    "GstRender.TextureFiltering": T[3], "GstRender.AnisotropicFilter": T[4], "GstRender.EffectsQuality": T[5],
-    "GstRender.LightingQuality": T[6], "GstRender.ShadowQuality": T[7],
-  });
-
+  /* ---------- Battlefield 4 (Get-ProfileSettingsBf4) ---------- */
   if (game === "bf4") {
-    set({ "GstRender.AntiAliasingPost": tier === 3 ? "0" : "1", "GstRender.ResolutionScale": tier === 3 ? "1.250000" : "1.000000" });
-  } else if (game === "bf1") {
-    set({ "GstRender.AntiAliasingPost": { 3: "3", 2: "2", 1: "1" }[tier], "GstRender.ResolutionScale": "1.000000", "GstRender.ClampGpuMemory": tier === 3 ? "0" : "1" });
-  } else {
-    set({ "GstRender.AntiAliasingPost": tier === 3 ? "2" : "1", "GstRender.ResolutionScale": "1.000000", "GstRender.ClampGpuMemory": tier === 3 ? "0" : "1" });
+    set({
+      "GstRender.OverallGraphicsQuality": "4", "GstRender.AmbientOcclusion": "0", "GstRender.AntiAliasingDeferred": "0",
+      "GstRender.Enlighten": "0", "GstRender.MotionBlur": "0.000000", "GstRender.MotionBlurEnabled": "0",
+      "GstRender.PostProcessQuality": "0", "GstRender.TransparentShadows": "0", "GstRender.UndergrowthQuality": "0",
+      "GstRender.VSyncEnabled": "0", "GstRender.WeaponDOF": "0",
+      "GstInput.HeadtrackingEnabled": "0", "GstInput.SpeechRecognitionEnabled": "0",
+    });
+    // [texture, mesh, terrain, filtering, aniso, effects, lighting, shadows, AA post, resolution scale]
+    const T = { 3: ["3","3","3","3","4","1","1","1","0","1.250000"], 2: ["2","2","2","2","4","1","1","1","1","1.000000"], 1: ["1","1","1","1","2","0","0","0","1","1.000000"] }[tier];
+    set({
+      "GstRender.TextureQuality": T[0], "GstRender.MeshQuality": T[1], "GstRender.TerrainQuality": T[2],
+      "GstRender.TextureFiltering": T[3], "GstRender.AnisotropicFilter": T[4], "GstRender.EffectsQuality": T[5],
+      "GstRender.LightingQuality": T[6], "GstRender.ShadowQuality": T[7], "GstRender.AntiAliasingPost": T[8],
+      "GstRender.ResolutionScale": T[9],
+    });
+    capMeshTerrain();
+    return { settings: s, capped };
   }
 
-  // Weak CPU: mesh and terrain add draw calls
-  if (threads <= 4) { cap("GstRender.MeshQuality", 1); cap("GstRender.TerrainQuality", 1); capped.push("cpu"); }
-
-  // Low system RAM: texture streaming stutters
-  if (game === "bf4" && ram < 8) { cap("GstRender.TextureQuality", 1); cap("GstRender.MeshQuality", 1); capped.push("ram"); }
-  if (game === "bf1" || game === "bfv") {
-    const rec = GAMES[game].recRam;
-    if (ram <= 8)       { cap("GstRender.TextureQuality", 1); s["GstRender.ClampGpuMemory"] = "1"; capped.push("ram"); }
-    else if (ram < rec) { cap("GstRender.TextureQuality", 2); s["GstRender.ClampGpuMemory"] = "1"; capped.push("ram"); }
+  /* ---------- Battlefield 1 (Get-ProfileSettingsBf1) ---------- */
+  if (game === "bf1") {
+    set({
+      "GstRender.OverallGraphicsQuality": "4", "GstRender.Dx12Enabled": "0", "GstRender.Dx12AutoDetect": "0",
+      "GstRender.AmbientOcclusion": "0", "GstRender.AntiAliasingDeferred": "0", "GstRender.Enlighten": "0",
+      "GstRender.MotionBlur": "0.000000", "GstRender.MotionBlurEnabled": "0", "GstRender.ChromaticAberration": "0",
+      "GstRender.FilmGrain": "0", "GstRender.LensDistortion": "0", "GstRender.PostProcessQuality": "0",
+      "GstRender.TransparentShadows": "0", "GstRender.UndergrowthQuality": "0", "GstRender.VSyncEnabled": "0",
+      "GstRender.WeaponDOF": "0", "GstRender.SniperSweetspotDoF": "0",
+    });
+    // [texture, mesh, terrain, filtering, aniso, effects, lighting, shadows, AA post, GPU memory restriction]
+    const T = { 3: ["3","3","3","3","4","1","1","1","3","0"], 2: ["2","2","2","2","4","1","1","1","2","1"], 1: ["1","1","1","1","2","0","0","0","1","1"] }[tier];
+    set({
+      "GstRender.TextureQuality": T[0], "GstRender.MeshQuality": T[1], "GstRender.TerrainQuality": T[2],
+      "GstRender.TextureFiltering": T[3], "GstRender.AnisotropicFilter": T[4], "GstRender.EffectsQuality": T[5],
+      "GstRender.LightingQuality": T[6], "GstRender.ShadowQuality": T[7], "GstRender.AntiAliasingPost": T[8],
+      "GstRender.ResolutionScale": "1.000000", "GstRender.ClampGpuMemory": T[9],
+    });
+    capMeshTerrain();
+    return { settings: s, capped };
   }
-  // Small VRAM
-  if (vram && vram < 4) cap("GstRender.TextureQuality", 1);
-  if (game === "bfv" && vram && vram < 6) cap("GstRender.TextureQuality", 2);
 
+  /* ---------- Battlefield V (Get-ProfileSettingsBfv) ----------
+     Anti-aliasing, DX12, DLSS, HDR, FOV and HUD are left alone. Ultra is never used. */
+  set({
+    "GstRender.OverallGraphicsQuality": "0",   // BF V stores 0 alongside customized settings
+    "GstRender.MotionBlurEnabled": "0", "GstRender.MotionBlur": "0.000000", "GstRender.ChromaticAberration": "0",
+    "GstRender.FilmGrain": "0", "GstRender.LensDistortion": "0", "GstRender.Vignette": "0", "GstRender.WeaponDOF": "0",
+    "GstRender.UndergrowthQuality": "0", "GstRender.PostProcessQuality": "0",
+    "GstRender.AmbientOcclusion": "0", "GstRender.TransparentShadows": "0", "GstRender.Enlighten": "0",
+    "GstRender.VSyncEnabled": "0",
+  });
+  // [texture, filtering, mesh, terrain, lighting, effects, shadows]
+  const T = { 3: ["2","2","2","2","1","1","1"], 2: ["1","2","1","1","0","0","0"], 1: ["0","1","0","0","0","0","0"] }[tier];
+  set({
+    "GstRender.TextureQuality": T[0], "GstRender.TextureFiltering": T[1], "GstRender.MeshQuality": T[2],
+    "GstRender.TerrainQuality": T[3], "GstRender.LightingQuality": T[4], "GstRender.EffectsQuality": T[5],
+    "GstRender.ShadowQuality": T[6],
+  });
+  // Ray-traced reflections are far too heavy below the High tier
+  if (tier <= 2) s["GstRender.DxREnabled"] = "0";
+  // Textures cost VRAM, not frame rate: limit them by video memory
+  if (vram > 0) {
+    const before = s["GstRender.TextureQuality"];
+    cap("GstRender.TextureQuality", vram >= 6 ? 2 : vram >= 4 ? 1 : 0);
+    if (before !== s["GstRender.TextureQuality"]) capped.push("vram");
+  }
+  capMeshTerrain();
   return { settings: s, capped };
 }
 
@@ -956,7 +1018,7 @@ function fillGpu() {
   const sel = $("gpu");
   GPUS.forEach((grp, gi) => {
     const og = el("optgroup", { label: grp.g });
-    grp.items.forEach(([n, , v], i) => og.appendChild(el("option", { value: `${gi}-${i}` }, `${n} (${v} GB)`)));
+    grp.items.forEach(([n, v], i) => og.appendChild(el("option", { value: `${gi}-${i}` }, `${n} (${v} GB)`)));
     sel.appendChild(og);
   });
   const og = el("optgroup", { label: "Other" });
@@ -997,8 +1059,8 @@ function readState() {
   if (gpuVal === "other") { tier = +$("gpuTier").value; vram = 0; vendor = $("gpuVendor").value; gpuName = ""; }
   else {
     const [g, i] = gpuVal.split("-").map(Number); const it = GPUS[g].items[i];
-    vram = it[2]; vendor = GPUS[g].v; gpuName = it[0];
-    tier = game === "bf6" ? bf6Tier(gpuName, vram) : it[1];
+    vram = it[1]; vendor = GPUS[g].v; gpuName = driverName(vendor, it[0]);
+    tier = game === "bf6" ? bf6Tier(gpuName, vram) : gpuTierClassic(gpuName, vram);
   }
 
   return {
@@ -1079,7 +1141,9 @@ function sameValue(a, b) {
 
 /* Apply settings on top of the user's profile. Every other line is kept
    exactly as the game wrote it; line endings are preserved. */
-function patchProfile(up, settings) {
+function patchProfile(up, settings, eolMode) {
+  // 'crlf' (BF1): Windows line endings with a final newline, like the script
+  if (eolMode === "crlf") up = { ...up, eol: "\r\n", endNl: true };
   const body = up.text.replace(/\r?\n$/, "");
   const src = body.length ? body.split(/\r?\n/) : [];
   const seen = new Set(); const changes = [];
@@ -1127,9 +1191,17 @@ function update() {
   $("extrasStep").querySelector(".checks").style.display = is6 ? "none" : "";
   $("extrasNote").style.display = is6 ? "" : "none";
   $("profNeed").textContent = G.needsProfile ? "(required)" : "(recommended)";
-  const scriptUrl = SCRIPT_URLS[game];
-  $("scriptLine").hidden = !scriptUrl;
-  if (scriptUrl) { $("scriptLink").href = scriptUrl; $("scriptLink").textContent = `Download the ${G.name} optimizer script`; }
+
+  // BF4 only (like the script): in exclusive fullscreen BF4 switches the
+  // display to its own refresh rate. If the loaded profile runs fullscreen
+  // at a higher rate than the one picked here, the cap follows the game.
+  let fsNote = null;
+  const pickedHz = st.hz;   // the share link keeps what was picked, not the game's rate
+  if (game === "bf4" && up && /^GstRender\.FullscreenEnabled\s+1\s*$/m.test(up.text)) {
+    const fs = up.text.match(/^GstRender\.FullscreenRefreshRate\s+([\d.]+)/m);
+    const fsHz = fs ? Math.round(parseFloat(fs[1])) : 0;
+    if (fsHz > st.hz + 1) { fsNote = `Your BF4 profile runs fullscreen at ${fsHz} Hz, so ${fsHz} Hz is used for the FPS cap instead of ${st.hz} Hz.`; st.hz = fsHz; }
+  }
 
   /* ---------- user.cfg ---------- */
   const fc = frameCap(game, st);
@@ -1148,7 +1220,7 @@ function update() {
   let profReady = true;
 
   if (up) {
-    const res = patchProfile(up, settings);
+    const res = patchProfile(up, settings, G.eol);
     changes = res.changes;
     outputs.prof = res.text;
     profLines = res.out.filter(l => settings[l.split(/\s+/)[0]] !== undefined);
@@ -1162,13 +1234,16 @@ function update() {
     if (fr && +fr[1] > 0 && +fr[1] < st.hz - 1) notes.push(["warn", `Your profile runs the game at ${Math.round(+fr[1])} Hz but you chose a ${st.hz} Hz display. Select ${st.hz} Hz in the game's display options.`]);
   } else if (G.needsProfile) {
     profReady = false;
-    profLines = Object.keys(settings).sort().map(k => `${k} ${settings[k]}`);
+    profLines = Object.keys(settings).map(k => `${k} ${settings[k]}`);
     outputs.prof = "";
     $("profNote").className = "panel-note warn";
-    $("profNote").textContent = "Preview only. Battlefield 6 profiles hold hundreds of settings, so a file built from scratch would reset your keybinds, HUD and audio. Load your current PROFSAVE_profile in step 6 to download yours.";
+    $("profNote").textContent = `Preview only. A ${G.short} profile built from scratch would reset your HUD, keybinds and audio, so the download needs your current PROFSAVE_profile. Load it in step 6.`;
   } else {
-    profLines = Object.keys(settings).sort().map(k => `${k} ${settings[k]}`);
-    outputs.prof = profLines.join("\r\n") + "\r\n";
+    // Graphics-only profile, written exactly like the script does without an
+    // existing file: keys in the script's order, BF4 with LF and BF1 with CRLF
+    const res = patchProfile({ text: "", eol: "\n", endNl: true }, settings, G.eol);
+    profLines = res.out;
+    outputs.prof = res.text;
     $("profNote").className = "panel-note warn";
     $("profNote").textContent = "Graphics settings only. Replacing your profile with this file resets keybinds, sensitivity and audio to defaults. Load your current profile in step 6 to keep them.";
   }
@@ -1184,16 +1259,15 @@ function update() {
   });
 
   /* ---------- Notes ---------- */
+  if (fsNote) notes.push(["info", fsNote]);
   if (st.ram < G.minRam) notes.push(["warn", `${G.name} needs at least ${G.minRam} GB of RAM. Expect stutter regardless of settings.`]);
-  if (capped.includes("ram")) notes.push(["info", game === "bf4"
-    ? `With ${st.ram} GB of RAM, texture and mesh quality are capped at Medium to avoid streaming stutter.`
-    : `With ${st.ram} GB of RAM, texture quality is capped and GPU memory restriction stays on to avoid streaming stutter. ${G.name} recommends ${G.recRam} GB.`]);
   if (capped.includes("cpu")) notes.push(["info", "With 4 threads or fewer, mesh and terrain quality are capped at Medium and the render queue is 2 frames to reduce CPU stutter."]);
   if (capped.includes("cpu6")) notes.push(["info", st.laptop && st.threads > 8 && st.cores >= 8
     ? "Laptop: mesh and terrain quality are capped at Medium, since the CPU shares power and cooling with the GPU. BF6 is CPU-heavy."
     : `${st.cores} cores / ${st.threads} threads: mesh and terrain quality are capped at Medium. BF6 is CPU-heavy and recommends an 8-core CPU.`]);
   if (capped.includes("vram")) notes.push(["info", `${st.vram} GB of VRAM: texture quality is limited to fit in video memory.`]);
-  if (game === "bfv" && st.threads < 8) notes.push(["info", "Future frame rendering stays on: with fewer than 8 threads, turning it off costs too many frames in BF V."]);
+  if (game === "bfv" && up && /^GstRender\.Dx12Enabled\s+1/m.test(up.text)) notes.push(["info", "DirectX 12 is on in your profile (needed for ray tracing and DLSS), and it's left as you set it. If you get stutter, try DX11 in Options > Video."]);
+  if (game === "bfv" && st.tier <= 2) notes.push(["info", "Ray-traced reflections (DXR) are kept off on this GPU."]);
   if (is6 && st.tier === 1) notes.push(["info", "On this GPU, turn on DLSS, FSR or XeSS (Quality) in Options > Graphics for a big FPS gain. The profile leaves upscaling as you set it."]);
   if (st.cpuLaptop && !st.laptop) notes.push(["info", "You picked a laptop processor but PC type is Desktop. Switch to Laptop if this is a laptop: the FPS cap is set more conservatively for temperatures."]);
   if (st.laptop && st.vendor === "nvidia") notes.push(["info", `On laptops, plug in the charger and make sure the game uses the NVIDIA GPU: NVIDIA Control Panel > Manage 3D settings > Program settings > ${G.exe} > High-performance NVIDIA processor.`]);
@@ -1231,10 +1305,12 @@ function update() {
   });
   t2.appendChild(tb2); why.appendChild(t2);
   const foot = (t) => why.appendChild(el("p", { style: "color:var(--code-dim);font-size:14px;margin:12px 0 0" }, t));
-  if (game === "bf1" || game === "bfv") foot(`${G.name}'s antialiasing values aren't officially documented. After applying, check that the video options show the expected setting.`);
+  if (game === "bf1") foot(`${G.name}'s antialiasing values aren't officially documented. After applying, check that the video options show the expected setting.`);
   foot(is6
     ? "Not changed: resolution, upscaling (DLSS / FSR / XeSS), dynamic resolution, HDR, FOV, HUD, keybinds, mouse and controller settings, audio."
-    : "Not changed: resolution, refresh rate, FOV, brightness, HUD, keybinds, mouse and controller settings, audio.");
+    : game === "bfv"
+      ? "Not changed: resolution, anti-aliasing, DirectX 12, DLSS, HDR, FOV, HUD, colour-blind colours, keybinds and mouse (kept in PROFSAVE_profile_synced), audio."
+      : "Not changed: resolution, refresh rate, FOV, brightness, HUD, keybinds, mouse and controller settings, audio.");
 
   /* ---------- Install paths ---------- */
   $("exeName").textContent = G.exe;
@@ -1269,7 +1345,7 @@ function update() {
   const list = el("ul"); items.forEach(i => list.appendChild(el("li", {}, i))); d.appendChild(list);
   d.appendChild(el("p", { className: "hint" }, "Windows: Settings > System > Display > Graphics: set the game to High performance."));
 
-  writeHash(st);
+  writeHash({ ...st, hz: pickedHz });
 }
 
 /* ----------------------------------------------------------------------
@@ -1362,6 +1438,7 @@ fillSimple("hz", HZ_OPTIONS, "Hz", "144");
 readHash();
 initTabs(); initTheme();
 $("repoLink").href = REPO_URL;
+$("scriptLink").href = SCRIPT_URL;
 
 // Picking a laptop CPU or GPU switches PC type to Laptop (still editable)
 $("cpu").addEventListener("change", () => {
